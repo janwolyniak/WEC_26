@@ -363,3 +363,10 @@
   - base + `possession_sequence`
   - base + both
 - Included interpretation and subgroup-stability outputs for the geometry-aware sequence feature families.
+- Added a second pass inside `sequential_goal_forecasting_geometry.ipynb` for a trimmed supported-core sequence subset.
+- The trimmed subset keeps 10 higher-support `seq15m_...` features and 10 higher-support `seqpos_...` features, and exports the selection rationale to `artifacts/sequential_goal_forecasting_geometry/trimmed_feature_selection.csv`.
+- Trimmed ablation results improved over the full sequence families:
+  - `logreg + base_plus_minute_hybrid_trimmed` reached balanced accuracy `0.5711` vs `0.5624` for the full minute-hybrid family
+  - `logreg + base_plus_possession_sequence_trimmed` reached balanced accuracy `0.5647` vs `0.5608` for the full possession family
+  - `rf + base_plus_both_trimmed` achieved the strongest tree-based sequence variant with ROC AUC `0.6574` and PR AUC `0.1245`
+- The baseline `logreg + base_only` model still remains the best balanced-accuracy reference at `0.5831`, so the current interpretation is that sequence features are promising but not yet net-positive enough to replace the simpler baseline.
