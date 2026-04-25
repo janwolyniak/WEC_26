@@ -1,18 +1,35 @@
 
 
 setwd("C:/Users/macku/OneDrive/Dokumenty/WWEECC/WEC_26/data")
-df <- read.csv("players_quarters_final.csv")
 library(tidyverse)
 library(skimr) 
 library(tidyverse)
 library(sandwich)
 library(lmtest)
+library(car)
+
+df <- read_csv("players_quarters_final.csv", show_col_types = FALSE) %>%
+  mutate(
+    scored_after_binary = as.numeric(scored_after),
+    position = as.factor(position),
+    is_home = as.factor(is_home),
+    checkpoint = as.factor(checkpoint), # Crucial for 'time remaining' effects
+    
+    # Calculate history for ALL overlapping variables
+    history_shots = cumul_shots - last15_shots,
+    history_shots_on_target = cumul_shots_on_target - last15_shots_on_target,
+    history_shots_under_press = cumul_shots_under_press - last15_shots_under_press,
+    history_shots_top_third = cumul_shots_top_third - last15_shots_top_third,
+    history_hsr = cumul_hsr - last15_hsr,
+    history_sprints = cumul_sprints - last15_sprints,
+    history_distance = cumul_distance - last15_distance
+  ) %>%
+  # Exclude goalkeepers as you mentioned
+  filter(position != "G")
+
+
 
 ###### LOGIT MVP #######
-
-# Ensure the dependent variable is strictly 0 and 1
-df <- df %>%
-  mutate(scored_after_binary = as.numeric(scored_after))
 
 # 2. Estimate the Standard Pooled Logit Model
 logit_mvp <- glm(
@@ -23,11 +40,33 @@ logit_mvp <- glm(
   family = binomial(link = "logit")
 )
 
-logit_mvp <- glm(
-  formula = scored_after_binary ~ last15_hsr + cumul_distance,
+logit_bloated <- glm(
+  formula = scored_after_binary ~ 
+    # A. Match Context
+    position + is_home + checkpoint +
+    
+    # B. Recent Form (Last 15)
+    last15_shots + last15_shots_on_target + last15_shots_under_press + last15_shots_top_third +
+    last15_hsr + last15_sprints + last15_distance + last15_peak_speed +
+    
+    # C. Historical Form (Prior to Last 15)
+    history_shots + history_shots_on_target + history_shots_under_press + history_shots_top_third +
+    history_hsr + history_sprints + history_distance + cumul_peak_speed +
+    
+    # D. Sensible Interactions
+    position:last15_shots +       # Does a shot from a Forward mean more than from a Defender?
+    last15_hsr:last15_shots +     # High physical intensity combined with attacking product
+    position:history_distance +   # Does historical fatigue affect positions differently?
+    is_home:last15_shots,         # Does home advantage improve shot danger?
+    
   data = df,
   family = binomial(link = "logit")
 )
+logit_automated <- step(logit_bloated, direction = "backward", trace = 1)
+clustered_vcov_automated <- vcovCL(logit_automated, cluster = ~ player_appearance_id)
+robust_results_automated <- coeftest(logit_automated, vcov = clustered_vcov_automated)
+print(robust_results_automated)
+
 
 # 3. Calculate Clustered Standard Errors
 clustered_vcov <- vcovCL(logit_mvp, cluster = ~ player_appearance_id)
@@ -35,6 +74,9 @@ clustered_vcov <- vcovCL(logit_mvp, cluster = ~ player_appearance_id)
 # 4. Generate the Final Results Table
 robust_results <- coeftest(logit_mvp, vcov = clustered_vcov)
 print(robust_results)
+
+bloated_vif <- vif(logit_mvp)
+print(bloated_vif)
 
 # 5. Calculate Odds Ratios for easier interpretation
 cat("\n=== ODDS RATIOS ===\n")
