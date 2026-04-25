@@ -416,3 +416,87 @@
 - The sequence notebook now covers both:
   - RQ1 via grouped predictive metrics and ablation comparisons
   - RQ2 via tuned sparse-model coefficients plus SHAP-based behavioural importance and directionality
+- Extended the RQ2 block in `notebooks/sequential_goal_forecasting_geometry.ipynb` to incorporate leakage-safe variables coming from `notebooks/data_cleaning_feature_selection_general.ipynb` / `data/players_quarters_final_step1.csv`.
+- Included these additional RQ2 variables in the expanded behavioural model:
+  - `minute_in_window`
+  - `last15_pass_passed`
+  - `last15_pass_passed_accurate`
+  - `last15_pass_received`
+  - `last15_pass_received_accurate`
+  - `cumul_pass_passed`
+  - `cumul_pass_passed_accurate`
+  - `cumul_pass_received`
+  - `cumul_pass_received_accurate`
+- Explicitly excluded leakage-prone Step-1 variables from the expanded RQ2 model:
+  - `subbed`
+  - `minutes_in_game`
+  - `minute_out_window`
+- Added an expanded sparse logistic tuning pass for RQ2 using lean possession-sequence features plus the leakage-safe Step-1 variables.
+- Exported new expanded-RQ2 artifacts to `artifacts/sequential_goal_forecasting_geometry/`:
+  - `rq2_expanded_tuning_table.csv`
+  - `rq2_step1_shap_table.csv`
+  - `rq2_step1_shap_bar.png`
+  - `rq2_step1_shap_beeswarm.png`
+  - `rq2_expanded_interpretation_table.csv`
+  - `rq2_expanded_subgroup_stability_table.csv`
+- The best expanded RQ2 configuration is:
+  - penalty = `l1`
+  - C = `0.10`
+  - class_weight = `balanced`
+- Best expanded RQ2 validation metrics:
+  - balanced accuracy = `0.5956`
+  - ROC AUC = `0.6194`
+  - PR AUC = `0.1016`
+  - Brier score = `0.2136`
+- This expanded model does not beat the tuned possession-only model on balanced accuracy (`0.6006`), but it gives a broader behavioural answer to RQ2 by combining possession-sequence structure with pass-behaviour variables from the general cleaning notebook.
+- SHAP on the added Step-1 variables shows the strongest extra behavioural effects come from:
+  - `cumul_pass_passed`: strongest added negative determinant
+  - `cumul_pass_received_accurate`: strong added positive determinant
+  - `last15_pass_received_accurate`: positive recent receiving signal
+  - `last15_pass_received`: negative recent receiving-volume signal in the tuned sparse model
+- The combined expanded interpretation table is now led by:
+  - `cumul_pass_passed`
+  - `seqpos_mean_run_distance_per_possession`
+  - `cumul_pass_received_accurate`
+  - `last15_pass_received_accurate`
+  - `last15_pass_received`
+- Replaced the leaky full-match `minutes_in_game` concept in the expanded RQ2 notebook block with a checkpoint-safe cumulative playtime variable:
+  - `minutes_in_game_to_checkpoint`
+  - definition: `checkpoint_cont_min - minute_in + 1`
+  - source: merged from `players_quarters_final`, where the same quantity already exists as `minutes_available_before_checkpoint`
+- Kept the raw Step-1 `minutes_in_game` excluded, because it still encodes full-match exposure beyond the checkpoint.
+- Re-ran `notebooks/sequential_goal_forecasting_geometry.ipynb` with this cumulative playtime feature included in the expanded sparse logistic RQ2 model and in the Step-1 SHAP analysis.
+- Updated expanded RQ2 results after adding checkpoint-safe playtime:
+  - best config remains `penalty=l1`, `C=0.10`, `class_weight=balanced`
+  - balanced accuracy = `0.5923`
+  - ROC AUC = `0.6157`
+  - PR AUC = `0.1022`
+  - Brier score = `0.2156`
+- The new cumulative playtime feature is retained by the sparse model:
+  - `minutes_in_game_to_checkpoint` coefficient = `-0.1779`
+  - SHAP rank among the added Step-1 variables = `5`
+  - interpretation in this multivariable setting: more minutes already played by the checkpoint is associated with a lower later scoring probability, conditional on the other possession and passing variables in the model
+- Added a dedicated RQ3-RQ7 implementation path:
+  - `src/python/rq3_rq7_ablation.py`
+  - `notebooks/rq3_rq7_ablation_matrix.ipynb`
+- The new module uses the frozen grouped split file `data/splits/modeling_row_folds.csv` as the modeling base so all RQ3-RQ7 experiments stay aligned with the fixed development/holdout protocol.
+- Implemented leakage-safe checkpoint-aligned event aggregation for:
+  - pass events from `player_appearance_pass.csv`
+  - pressure events from `player_appearance_behaviour_under_pressure.csv`
+- Added deterministic derived feature blocks for the RQ matrix:
+  - context/exposure variables including `minutes_available_before_checkpoint`
+  - history-only carry-over features for count-like base variables
+  - relative-intensity features comparing recent activity against cumulative level
+- Implemented frozen-CV logistic ablations for:
+  - RQ3: direct shots-and-sprints sufficiency vs broader base behavior
+  - RQ4: incremental value of pass and pressure aggregates
+  - RQ5: `last15` vs `cumul` vs combined vs historical carry-over
+  - RQ6: added value and directionality of relative-intensity features
+  - RQ7: context-only vs behavior-only vs context-augmented models
+- Configured the new workflow to export compact paper-facing artifacts under `artifacts/rq3_rq7_ablation/`, including:
+  - mean CV result tables
+  - fold metrics
+  - RQ4 deltas
+  - RQ5 temporal comparison
+  - RQ6 relative-intensity coefficient ranking
+  - RQ7 context permutation-importance ranking
