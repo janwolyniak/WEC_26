@@ -218,6 +218,31 @@
   - `minute_out_ET1_15`
   - `minute_out_ET2_15`
 - Overwrote `tables["players_quarters_final_step1.csv"]` with the cleaner Step-1 modeling version.
+
+## KNN-specific clean dataset export
+
+- Added a dedicated KNN export path built from the latest `clean_df`.
+- Created `scored_after_eval_key` so the target remains traceable to the correct:
+  - match
+  - checkpoint
+  - player
+- Built this key from:
+  - `fixture_id`
+  - `checkpoint`
+  - `player_id`
+- Created a compact `knn_target_lookup` view inside the notebook to verify that the key-to-target mapping is unique.
+- Added a duplicate-key validation step that raises an error if `scored_after_eval_key` is not unique.
+- Built `knn_df` as a KNN-ready dataset and dropped columns requested for removal:
+  - `player_appearance_id`
+  - `date`
+  - `minute_out_window`
+  - `fixture_id`
+- Kept `scored_after_eval_key` in the KNN dataset so predictions can later be joined back to the correct target row for accuracy checks.
+- Stored the result as `tables["knn_dataset.csv"]`.
+- Updated the notebook export step so it now saves:
+  - `players_quarters_final.csv`
+  - `players_quarters_final_step1.csv`
+  - `knn_dataset.csv`
 - Displayed a reduced preview with:
   - `player_appearance_id`
   - `checkpoint`
