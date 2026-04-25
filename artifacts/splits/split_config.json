@@ -1,15 +1,15 @@
 {
   "random_seed": 17,
-  "holdout_fixture_fraction": 0.2,
+  "holdout_fixture_fraction": 0.1,
   "n_dev_folds": 5,
   "holdout_restarts": 20,
   "fold_restarts": 20,
   "holdout_row_share_tolerance": 0.03,
   "holdout_target_rate_tolerance": 0.015,
   "holdout_home_away_share_tolerance": 0.03,
-  "holdout_player_wmae_tolerance": 0.18,
+  "holdout_player_wmae_tolerance": 0.1,
   "cv_row_share_tolerance": 0.02,
   "cv_target_rate_tolerance": 0.01,
   "cv_home_away_share_tolerance": 0.02,
-  "cv_player_wmae_tolerance": 0.22
+  "cv_player_wmae_tolerance": 0.1
 }

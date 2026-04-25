@@ -1,0 +1,11 @@
+{
+  "params": {
+    "n_estimators": 84,
+    "max_samples": 0.9993032514168263,
+    "contamination": 0.10320138272723942,
+    "max_features": 0.7694767712428405
+  },
+  "mean_pr_auc": 0.10430550188714169,
+  "mean_balanced_accuracy": 0.5525954673304038,
+  "mean_roc_auc": 0.591998806913087
+}

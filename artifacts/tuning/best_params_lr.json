@@ -1,0 +1,1 @@
+{"params": {"penalty_solver": "l2_lbfgs", "C": 0.005344690732380459}, "mean_pr_auc": 0.14421377866636115, "mean_balanced_accuracy": 0.6174644996366445, "std_balanced_accuracy": 0.03455820512975064, "mean_roc_auc": 0.6513801610123418, "mean_brier_score": 0.19700378398945756}

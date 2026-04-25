@@ -1,0 +1,30 @@
+{
+  "LogisticRegression": {
+    "params": {
+      "penalty_solver": "l2_lbfgs",
+      "C": 0.001034998733185069
+    },
+    "mean_balanced_accuracy": 0.6324369252827493,
+    "std_balanced_accuracy": 0.034864805985372935,
+    "mean_roc_auc": 0.6626562816206397,
+    "mean_pr_auc": 0.13860622367973466,
+    "mean_brier_score": 0.2045958350508222
+  },
+  "XGBoost": {
+    "params": {
+      "n_estimators": 92,
+      "max_depth": 2,
+      "learning_rate": 0.015518380748989468,
+      "min_child_weight": 20,
+      "subsample": 0.437158081904417,
+      "colsample_bytree": 0.8376996302709911,
+      "reg_alpha": 6.670198046573304e-08,
+      "reg_lambda": 0.09571498573930988
+    },
+    "mean_balanced_accuracy": 0.6376095411153977,
+    "std_balanced_accuracy": 0.02413721935028689,
+    "mean_roc_auc": 0.6795085140543056,
+    "mean_pr_auc": 0.14572059488848724,
+    "mean_brier_score": 0.18958065211772918
+  }
+}

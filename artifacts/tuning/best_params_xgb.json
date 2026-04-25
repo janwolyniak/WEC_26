@@ -1,0 +1,17 @@
+{
+  "params": {
+    "n_estimators": 394,
+    "max_depth": 8,
+    "learning_rate": 0.03412208679695792,
+    "min_child_weight": 7,
+    "subsample": 0.40154182610358496,
+    "colsample_bytree": 0.6088945963740322,
+    "reg_alpha": 0.01358493961394692,
+    "reg_lambda": 0.0379384964708257
+  },
+  "mean_pr_auc": 0.1802322902474873,
+  "mean_balanced_accuracy": 0.54809948261405,
+  "std_balanced_accuracy": 0.033743619108474086,
+  "mean_roc_auc": 0.6554907126042604,
+  "mean_brier_score": 0.06312703043222427
+}

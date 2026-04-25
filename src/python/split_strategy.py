@@ -16,18 +16,18 @@ from data_intake import NA_TOKENS, normalize_dataframe, project_root
 @dataclass(frozen=True)
 class SplitConfig:
     random_seed: int = 17
-    holdout_fixture_fraction: float = 0.2
-    n_dev_folds: int = 5
+    holdout_fixture_fraction: float = 0.1
+    n_dev_folds: int = 10
     holdout_restarts: int = 20
-    fold_restarts: int = 20
+    fold_restarts: int = 50
     holdout_row_share_tolerance: float = 0.03
     holdout_target_rate_tolerance: float = 0.015
     holdout_home_away_share_tolerance: float = 0.03
-    holdout_player_wmae_tolerance: float = 0.18
+    holdout_player_wmae_tolerance: float = 0.10
     cv_row_share_tolerance: float = 0.02
     cv_target_rate_tolerance: float = 0.01
     cv_home_away_share_tolerance: float = 0.02
-    cv_player_wmae_tolerance: float = 0.22
+    cv_player_wmae_tolerance: float = 0.10
 
 
 def load_base_table() -> pd.DataFrame:
@@ -237,10 +237,11 @@ def optimize_dev_folds(
         shuffled = fixture_ids[:]
         rng.shuffle(shuffled)
         fold_names = [f"fold_{idx}" for idx in range(config.n_dev_folds)]
-        folds = {
-            fold_name: tuple(sorted(shuffled[idx * fold_size : (idx + 1) * fold_size]))
-            for idx, fold_name in enumerate(fold_names)
-        }
+        folds: dict[str, tuple[int, ...]] = {name: () for name in fold_names}
+        for i, fixture_id in enumerate(shuffled):
+            fold_name = fold_names[i % config.n_dev_folds]
+            folds[fold_name] = tuple(sorted(list(folds[fold_name]) + [fixture_id]))
+        
         current_score = total_assignment_score(
             buckets=folds,
             score_inputs=score_inputs,
@@ -498,7 +499,7 @@ def write_evaluation_protocol(
     lines.append("")
     lines.append("## Metric Policy")
     lines.append("")
-    lines.append("- Primary model-selection metric: mean development-fold Balanced Accuracy.")
+    lines.append("- Primary model-selection metric: mean development-fold PR AUC.")
     lines.append("- Secondary metrics reported for every experiment: ROC AUC, PR AUC, and Brier score.")
     lines.append("- Fold-wise metrics must be archived to support uncertainty intervals and paired ablation comparisons.")
     lines.append("")
