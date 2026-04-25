@@ -336,3 +336,30 @@
 - Exported the final Step-1 modeling table to:
   - `data/players_quarters_final_step1.csv`
 - Printed the save path and final shape after export.
+## 2026-04-25
+
+- Added notebook [sequential_goal_forecasting_geometry.ipynb](/Users/jan/Documents/competitions/hackatons/WEC_26/notebooks/sequential_goal_forecasting_geometry.ipynb) to implement the first sequence-oriented goal-forecasting extension.
+- The notebook loads `players_quarters_final`, `player_appearance_behaviour_under_pressure`, `player_appearance_run`, and `player_appearance_shot_limited`, reconstructs continuous event time with the existing checkpoint-causal mapping, and builds both:
+  - a `minute_hybrid` last-15-minute ordered sequence view
+  - a strict `possession_sequence` view with unmatched pressure retained as residual checkpoint summaries
+- Exported reproducible artifacts to `artifacts/sequential_goal_forecasting_geometry/`:
+  - `sequence_feature_table.csv`
+  - `minute_sequence_long.csv`
+  - `possession_sequence_long.csv`
+  - `validation_checks.csv`
+  - `feature_support.csv`
+  - `metrics_table.csv`
+  - `fold_metrics_table.csv`
+  - `interpretation_table.csv`
+  - `subgroup_stability_table.csv`
+- Implemented validation checks confirming:
+  - no `seq15m` rows use post-checkpoint events
+  - no `seqpos` rows use post-checkpoint events
+  - sequence joins preserve checkpoint-row cardinality
+  - ambiguous pressure-to-possession matches are excluded from direct possession attribution
+- Implemented grouped development-fold evaluation with ablations for:
+  - base only
+  - base + `minute_hybrid`
+  - base + `possession_sequence`
+  - base + both
+- Included interpretation and subgroup-stability outputs for the geometry-aware sequence feature families.
