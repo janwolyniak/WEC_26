@@ -271,6 +271,52 @@
 - Removed the unused `minute_out_window` creation step from the slim KNN notebook.
 - This makes the notebook compatible with the current `data/players_quarters_final.csv` schema, which only contains raw `minute_in` and `minute_out`.
 
+## New sequencing dataset builder
+
+- Added `notebooks/sequencing_dataset_builder.ipynb`.
+- Built the new sequencing dataset starting from `data/knn_dataset.csv` rather than from the broader modeling tables.
+- Reused the previously generated geometry-aware sequence feature artifact:
+  - `artifacts/sequential_goal_forecasting_geometry/sequence_feature_table.csv`
+- Reconstructed the row link from `players_quarters_final.csv` using:
+  - `player_id`
+  - `fixture_id`
+  - `checkpoint`
+  - `scored_after_eval_key`
+- Merged the geometry sequence features onto the KNN base through `scored_after_eval_key`.
+
+### Additional event-derived sequencing features added
+
+- From `player_appearance_behaviour_under_pressure.csv`:
+  - `seqextra_pass_angle_observed_count`
+  - `seqextra_pass_angle_mean_deg`
+  - `seqextra_pass_angle_median_deg`
+  - `seqextra_pass_angle_std_deg`
+  - `seqextra_pass_angle_last_deg`
+- From `player_appearance_run.csv`:
+  - `seqextra_run_distinct_possessions`
+  - `seqextra_run_possession_transition_count`
+  - `seqextra_run_last_stage`
+  - `seqextra_run_stage_bottom_share`
+  - `seqextra_run_stage_middle_share`
+  - `seqextra_run_stage_top_share`
+- From `player_appearance_shot_limited.csv`:
+  - `seqextra_shot_last_body_part`
+  - `seqextra_shot_last_technique`
+  - `seqextra_shot_last_play_pattern`
+  - body-part share features
+  - technique share features
+  - play-pattern share features
+
+### Sequencing window and export behavior
+
+- Computed the extra event-derived summaries over the same last-15-minute window ending at each checkpoint.
+- Dropped helper linkage columns before final export:
+  - `player_appearance_id`
+  - `fixture_id`
+  - `checkpoint_cont_min`
+- Configured the notebook to export the final merged table to:
+  - `data/sequencing_dataset.csv`
+
 ## Pass-based feature engineering
 
 ### Absolute minute and checkpoint mapping
