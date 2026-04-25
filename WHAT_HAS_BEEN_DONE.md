@@ -388,3 +388,18 @@
   - pressure-induced turnovers
   - possession count / runs-per-possession structure
   - unmatched-pressure share
+- Added a fold-safe hyperparameter sweep for the `base_plus_possession_sequence_leaner` logistic track inside `sequential_goal_forecasting_geometry.ipynb`.
+- Exported new tuning artifacts to `artifacts/sequential_goal_forecasting_geometry/`:
+  - `tuned_possession_tuning_table.csv`
+  - `tuned_possession_oof_predictions.csv`
+  - `tuned_possession_interpretation_table.csv`
+  - `tuned_possession_subgroup_stability_table.csv`
+- The best tuned configuration is:
+  - penalty = `l1`
+  - C = `0.10`
+  - class_weight = `balanced`
+- This tuned possession-only logistic model improved the lean possession track from balanced accuracy `0.5806` to `0.6006`, which now exceeds the earlier base-only logistic benchmark `0.5831`.
+- Tuned possession-only interpretation is now sparse and stable:
+  - strongest positive effect: `seqpos_mean_run_distance_per_possession`
+  - strongest negative effect: `seqpos_unmatched_pressure_share`
+  - smaller positive effects remain for `seqpos_linked_pressure_total` and `seqpos_possession_count`
