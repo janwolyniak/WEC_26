@@ -292,6 +292,43 @@
   - `base_plus_trimmed` achieved the best balanced accuracy among the XGBoost sequence variants
 - This means the trimmed sequence families are much more defensible than the full sequence block, but they still do not beat the plain context baseline on the primary selection metric.
 
+# `notebooks/sequencing_dual_branch_nn.ipynb`
+
+## Neural benchmark follow-up
+
+- Added a new notebook for the next neural modeling step on top of the trimmed sequence setup.
+- The notebook benchmarks:
+  - `xgb_base_context`
+  - `xgb_base_plus_trimmed`
+  - `dual_branch_residual_mlp`
+  - `ft_transformer_lite`
+- Reused the same frozen fold protocol and the same trimmed `seq15m` + `seqpos` feature block.
+
+## Dual-branch architecture
+
+- Implemented a dual-branch residual MLP where:
+  - branch 1 receives base context features
+  - branch 2 receives trimmed sequence features
+  - categorical base-context variables are embedded
+  - both branches are fused in a small dense prediction head
+- Used weighted BCE loss to address class imbalance.
+- Added separate threshold tuning on pooled out-of-fold predictions instead of assuming `0.5` is optimal.
+
+## FT-transformer fallback
+
+- Implemented a lightweight FT-transformer-style fallback in the same notebook so the neural comparison did not stop at the dual-branch MLP.
+- The FT-style model tokenizes numeric features and categorical embeddings and passes them through a small transformer encoder before classification.
+
+## Result of neural comparison
+
+- The dual-branch residual MLP improved balanced accuracy, but did not improve PR AUC enough to justify replacing the tree benchmark.
+- The FT-transformer-style model achieved the best PR AUC among the models in this notebook.
+- Exported artifacts to `artifacts/sequencing_dual_branch_nn/`, including:
+  - fold metrics
+  - pooled out-of-fold predictions
+  - model summary
+  - threshold summary
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
