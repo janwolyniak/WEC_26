@@ -7,8 +7,9 @@ library(tidyverse)
 library(sandwich)
 library(lmtest)
 library(car)
+library(stargazer)
 
-df <- read_csv("players_quarters_final.csv", show_col_types = FALSE) %>%
+df <- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE) %>%
   mutate(
     scored_after_binary = as.numeric(scored_after),
     position = as.factor(position),
@@ -32,32 +33,34 @@ df <- read_csv("players_quarters_final.csv", show_col_types = FALSE) %>%
 ###### LOGIT MVP #######
 
 # 2. Estimate the Standard Pooled Logit Model
-logit_mvp <- glm(
-  formula = scored_after_binary ~ last15_hsr + last15_sprints  + last15_peak_speed + last15_shots + 
-  I(cumul_shots - last15_shots) + cumul_distance + cumul_mean_max_speed 
-  + as.factor(position),
-  data = df,
-  family = binomial(link = "logit")
-)
-
 logit_bloated <- glm(
   formula = scored_after_binary ~ 
     # A. Match Context
-    position + is_home + checkpoint +
+    position + is_home + checkpoint + minutes_in_game +
     
     # B. Recent Form (Last 15)
     last15_shots + last15_shots_on_target + last15_shots_under_press + last15_shots_top_third +
     last15_hsr + last15_sprints + last15_distance + last15_peak_speed +
+    last15_pass_received + last15_pass_passed + last15_pass_received_accurate + last15_pass_passed_accurate +
     
     # C. Historical Form (Prior to Last 15)
     history_shots + history_shots_on_target + history_shots_under_press + history_shots_top_third +
     history_hsr + history_sprints + history_distance + cumul_peak_speed +
+    history_pass_passed + history_pass_passed_accurate + history_pass_received + history_pass_received_accurate +
     
     # D. Sensible Interactions
-    position:last15_shots +       # Does a shot from a Forward mean more than from a Defender?
-    last15_hsr:last15_shots +     # High physical intensity combined with attacking product
-    position:history_distance +   # Does historical fatigue affect positions differently?
-    is_home:last15_shots,         # Does home advantage improve shot danger?
+    position:last15_shots +                  # Does a shot from a Forward mean more than from a Defender?
+    last15_hsr:last15_shots +                # High physical intensity combined with attacking product
+    position:history_distance +              # Does historical fatigue affect positions differently?
+    is_home:last15_shots +                   # Does home advantage improve shot danger?
+    position:last15_pass_received_accurate + # Forwards receiving accurate passes vs Defenders
+    minutes_in_game:history_distance +       # Compounding fatigue effect
+    last15_hsr:last15_pass_passed_accurate + # High running intensity while maintaining accurate passing
+    I(cumul_shots / minutes_in_game) +       # Shot frequency as a predictor
+    I(cumul_distance / minutes_in_game) +    # Running intensity as a predictor
+    I(cumul_pass_received_accurate / minutes_in_game) +     # Involvement in play as a predictor
+    I(cumul_shots_accurate / cumul_shots) +                 # Shooting accuracy as a predictor
+    I(cumul_shots_top_third / cumul_shots) +                 # Quality of shots as a predictor
     
   data = df,
   family = binomial(link = "logit")
@@ -68,21 +71,47 @@ robust_results_automated <- coeftest(logit_automated, vcov = clustered_vcov_auto
 print(robust_results_automated)
 
 
-# 3. Calculate Clustered Standard Errors
-clustered_vcov <- vcovCL(logit_mvp, cluster = ~ player_appearance_id)
-
-# 4. Generate the Final Results Table
-robust_results <- coeftest(logit_mvp, vcov = clustered_vcov)
-print(robust_results)
-
-bloated_vif <- vif(logit_mvp)
-print(bloated_vif)
-
 # 5. Calculate Odds Ratios for easier interpretation
-cat("\n=== ODDS RATIOS ===\n")
 # Exponentiating the coefficients gives us the Odds Ratios
-odds_ratios <- exp(coef(robust_results))
+odds_ratios <- exp(coef(robust_results_automated))
 print(odds_ratios)
+
+
+
+
+robust_se <- sqrt(diag(clustered_vcov_automated))
+stargazer(
+  logit_automated, 
+  type = "html", 
+  se = list(robust_se), # Inject our clustered standard errors
+  title = "Goal-Scoring Probability: Pooled Logit",
+  dep.var.labels = "Scored After (1=Yes)",
+  star.cutoffs = c(0.05, 0.01, 0.001),
+  no.space = TRUE,
+  digits = 3
+)
+
+odds_ratio_table <- data.frame(
+  Variable = rownames(robust_results_automated),
+  Odds_Ratio = round(exp(robust_results_automated[, "Estimate"]), 3),
+  Robust_SE = round(robust_results_automated[, "Std. Error"], 4),
+  P_Value = round(robust_results_automated[, "Pr(>|z|)"], 4)
+) %>%
+  mutate(
+    Significance = case_when(
+      P_Value < 0.001 ~ "***",
+      P_Value < 0.01 ~ "**",
+      P_Value < 0.05 ~ "*",
+      TRUE ~ ""
+    )
+  ) %>%
+  arrange(P_Value) # Sorts the table so your best predictors are at the top!
+
+# Print the clean dataframe
+print(odds_ratio_table, row.names = FALSE)
+
+
+
 
 
 
