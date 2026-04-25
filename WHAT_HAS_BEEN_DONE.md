@@ -250,6 +250,20 @@
   - `minute_in_window`
   - `minute_out_window`
 
+## Notebook cleanup for KNN-only scope
+
+- Simplified `notebooks/data_cleaning_feature_selection_general.ipynb` so it now focuses only on building the final KNN dataset.
+- Removed the broader intake, inventory, missingness, exploratory summaries, and intermediate export flow from the notebook.
+- Kept only the logic needed to build the final KNN feature set:
+  - checkpoint-window compression
+  - `minutes_in_game`
+  - pass-based last-15 features
+  - cumulative pass features
+  - `scored_after_eval_key`
+- Made the final KNN column list explicit in the notebook so the output schema is easier to inspect and control.
+- Reduced the notebook outputs to a minimal export summary and a preview of the final KNN table.
+- Narrowed the export behavior so the notebook now writes only `data/knn_dataset.csv`.
+
 ## Pass-based feature engineering
 
 ### Absolute minute and checkpoint mapping
