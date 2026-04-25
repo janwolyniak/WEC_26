@@ -16,18 +16,25 @@ df <- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE) %>%
     is_home = as.factor(is_home),
     checkpoint = as.factor(checkpoint), # Crucial for 'time remaining' effects
     
-    # Calculate history for ALL overlapping variables
+    # Calculate history for original overlapping variables
     history_shots = cumul_shots - last15_shots,
     history_shots_on_target = cumul_shots_on_target - last15_shots_on_target,
     history_shots_under_press = cumul_shots_under_press - last15_shots_under_press,
     history_shots_top_third = cumul_shots_top_third - last15_shots_top_third,
     history_hsr = cumul_hsr - last15_hsr,
     history_sprints = cumul_sprints - last15_sprints,
-    history_distance = cumul_distance - last15_distance
+    history_distance = cumul_distance - last15_distance,
+    
+    # Calculate history for NEW passing variables
+    history_pass_passed = cumul_pass_passed - last15_pass_passed,
+    history_pass_passed_accurate = cumul_pass_passed_accurate - last15_pass_passed_accurate,
+    history_pass_received = cumul_pass_received - last15_pass_received,
+    history_pass_received_accurate = cumul_pass_received_accurate - last15_pass_received_accurate
   ) %>%
   # Exclude goalkeepers as you mentioned
-  filter(position != "G")
-
+  filter(position != "G") %>%
+  # THE FIX: Drop any rows with NA values so the step() function has a constant sample size
+  drop_na()
 
 
 ###### LOGIT MVP #######
@@ -40,12 +47,12 @@ logit_bloated <- glm(
     
     # B. Recent Form (Last 15)
     last15_shots + last15_shots_on_target + last15_shots_under_press + last15_shots_top_third +
-    last15_hsr + last15_sprints + last15_peak_speed +
+    last15_hsr + last15_sprints + last15_distance + last15_peak_speed +
     last15_pass_received + last15_pass_passed + last15_pass_received_accurate + last15_pass_passed_accurate +
     
     # C. Historical Form (Prior to Last 15)
     history_shots + history_shots_on_target + history_shots_under_press + history_shots_top_third +
-    history_hsr + history_sprints  + cumul_peak_speed +
+    history_hsr + history_sprints + cumul_peak_speed +
     history_pass_passed + history_pass_passed_accurate + history_pass_received + history_pass_received_accurate +
     
     # D. Sensible Interactions
@@ -53,17 +60,15 @@ logit_bloated <- glm(
     last15_hsr:last15_shots +                # High physical intensity combined with attacking product
     is_home:last15_shots +                   # Does home advantage improve shot danger?
     position:last15_pass_received_accurate + # Forwards receiving accurate passes vs Defenders
-    last15_hsr:last15_pass_passed_accurate + # High running intensity while maintaining accurate passing
-    I(cumul_shots / minutes_in_game) +       # Shot frequency as a predictor
-    I(cumul_pass_received_accurate / minutes_in_game) +     # Involvement in play as a predictor
-    I(cumul_shots_accurate / cumul_shots) +                 # Shooting accuracy as a predictor
-    I(cumul_shots_top_third / cumul_shots) +                 # Quality of shots as a predictor
+    minutes_in_game:history_distance +       # Compounding fatigue effect
+    last15_hsr:last15_pass_passed_accurate,  # High running intensity while maintaining accurate passing
     
   data = df,
   family = binomial(link = "logit")
 )
 print(logit_bloated)
 logit_automated <- step(logit_bloated, direction = "backward", trace = 1)
+print(logit_automated)
 clustered_vcov_automated <- vcovCL(logit_automated, cluster = ~ player_appearance_id)
 robust_results_automated <- coeftest(logit_automated, vcov = clustered_vcov_automated)
 print(robust_results_automated)
@@ -73,8 +78,6 @@ print(robust_results_automated)
 # Exponentiating the coefficients gives us the Odds Ratios
 odds_ratios <- exp(coef(robust_results_automated))
 print(odds_ratios)
-
-
 
 
 robust_se <- sqrt(diag(clustered_vcov_automated))
