@@ -40,24 +40,21 @@ logit_bloated <- glm(
     
     # B. Recent Form (Last 15)
     last15_shots + last15_shots_on_target + last15_shots_under_press + last15_shots_top_third +
-    last15_hsr + last15_sprints + last15_distance + last15_peak_speed +
+    last15_hsr + last15_sprints + last15_peak_speed +
     last15_pass_received + last15_pass_passed + last15_pass_received_accurate + last15_pass_passed_accurate +
     
     # C. Historical Form (Prior to Last 15)
     history_shots + history_shots_on_target + history_shots_under_press + history_shots_top_third +
-    history_hsr + history_sprints + history_distance + cumul_peak_speed +
+    history_hsr + history_sprints  + cumul_peak_speed +
     history_pass_passed + history_pass_passed_accurate + history_pass_received + history_pass_received_accurate +
     
     # D. Sensible Interactions
     position:last15_shots +                  # Does a shot from a Forward mean more than from a Defender?
     last15_hsr:last15_shots +                # High physical intensity combined with attacking product
-    position:history_distance +              # Does historical fatigue affect positions differently?
     is_home:last15_shots +                   # Does home advantage improve shot danger?
     position:last15_pass_received_accurate + # Forwards receiving accurate passes vs Defenders
-    minutes_in_game:history_distance +       # Compounding fatigue effect
     last15_hsr:last15_pass_passed_accurate + # High running intensity while maintaining accurate passing
     I(cumul_shots / minutes_in_game) +       # Shot frequency as a predictor
-    I(cumul_distance / minutes_in_game) +    # Running intensity as a predictor
     I(cumul_pass_received_accurate / minutes_in_game) +     # Involvement in play as a predictor
     I(cumul_shots_accurate / cumul_shots) +                 # Shooting accuracy as a predictor
     I(cumul_shots_top_third / cumul_shots) +                 # Quality of shots as a predictor
@@ -65,6 +62,7 @@ logit_bloated <- glm(
   data = df,
   family = binomial(link = "logit")
 )
+print(logit_bloated)
 logit_automated <- step(logit_bloated, direction = "backward", trace = 1)
 clustered_vcov_automated <- vcovCL(logit_automated, cluster = ~ player_appearance_id)
 robust_results_automated <- coeftest(logit_automated, vcov = clustered_vcov_automated)
@@ -107,10 +105,35 @@ odds_ratio_table <- data.frame(
   ) %>%
   arrange(P_Value) # Sorts the table so your best predictors are at the top!
 
-# Print the clean dataframe
-print(odds_ratio_table, row.names = FALSE)
+# Print the clean dataframe as a nice HTML table
+library(knitr)
+library(kableExtra)
 
+odds_ratio_table <- data.frame(
+  Variable = rownames(robust_results_automated),
+  Odds_Ratio = round(exp(robust_results_automated[, "Estimate"]), 3),
+  Robust_SE = round(robust_results_automated[, "Std. Error"], 4),
+  P_Value = round(robust_results_automated[, "Pr(>|z|)"], 4)
+) %>%
+  mutate(
+    Significance = case_when(
+      P_Value < 0.001 ~ "***",
+      P_Value < 0.01 ~ "**",
+      P_Value < 0.05 ~ "*",
+      TRUE ~ ""
+    )
+  ) %>%
+  arrange(P_Value) # Sorts the table so your best predictors are at the top!
 
+# Print the clean dataframe as a nice publication-style HTML table
+odds_ratio_table %>%
+  kbl(format = "html", 
+      caption = "Odds Ratios & Significance",
+      align = "c") %>% # align = "c" centers all columns and values
+  kable_classic(full_width = FALSE, 
+                position = "left", 
+                html_font = "serif") %>% # kable_classic adds traditional publication horizontal lines
+  cat(file = "odds_ratio_table.html")
 
 
 
