@@ -458,35 +458,38 @@ def run_fold_checks(root: Path, checks: list[LeakageCheck]) -> pd.DataFrame:
             columns=["artifact", "split_column", "key_overlap_rows", "fixture_overlap_rows", "status"]
         )
 
+    auditable_paths: list[tuple[Path, pd.DataFrame, str]] = []
     for path in split_paths:
         frame = load_split_frame(path)
         split_column = next((col for col in ["split", "fold", "set", "partition"] if col in frame.columns), None)
         has_key_cols = {"player_appearance_id", "checkpoint"}.issubset(frame.columns)
 
         if split_column is None or not has_key_cols:
-            diagnostics.append(
-                {
-                    "artifact": str(path.relative_to(root)),
-                    "split_column": split_column or "",
-                    "key_overlap_rows": pd.NA,
-                    "fixture_overlap_rows": pd.NA,
-                    "status": "pending",
-                }
-            )
-            add_check(
-                checks=checks,
-                category="fold_leakage",
-                check_name=f"split_schema_supported_{path.name}",
-                status="pending",
-                severity="major",
-                issue_count=1,
-                total_rows=1,
-                details="Split artifact exists but cannot be audited without key columns and a split label column.",
-                evidence=f"Columns found: {', '.join(frame.columns.astype(str))}.",
-                resolution_action="Store `player_appearance_id`, `checkpoint`, and one of `split`/`fold`/`set`/`partition`.",
-            )
             continue
 
+        auditable_paths.append((path, frame, split_column))
+
+    if not auditable_paths:
+        add_check(
+            checks=checks,
+            category="fold_leakage",
+            check_name="split_artifacts_available_for_overlap_audit",
+            status="pending",
+            severity="major",
+            issue_count=1,
+            total_rows=1,
+            details="Fold leakage audit requires at least one row-level split artifact with key columns.",
+            evidence=(
+                "No split artifact with `player_appearance_id`, `checkpoint`, and a split label column was found "
+                "under `data/splits` or `artifacts/splits`."
+            ),
+            resolution_action="Persist a row-level split assignment file and rerun the leakage audit.",
+        )
+        return pd.DataFrame(
+            columns=["artifact", "split_column", "key_overlap_rows", "fixture_overlap_rows", "status"]
+        )
+
+    for path, frame, split_column in auditable_paths:
         key_overlap_rows = int(
             frame.groupby(["player_appearance_id", "checkpoint"], dropna=False)[split_column].nunique().gt(1).sum()
         )

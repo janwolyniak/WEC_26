@@ -57,7 +57,8 @@ These protocol choices are frozen before model tuning.
 - Fold-only preprocessing controls train-validation contamination and must be combined with separate within-match temporal causality controls.
 
 ### 4.3 Model Comparison Rules
-- Primary ranking metric: mean CV Balanced Accuracy / PR AUC, to be chosen later.
+- Primary ranking metric: mean CV Balanced Accuracy.
+- Secondary reported metrics: ROC AUC, PR AUC, and Brier score.
 - Stability criterion: low fold variance across key metrics.
 - Preference for simpler/interpretable model when performance is statistically indistinguishable.
 
