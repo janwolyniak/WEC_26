@@ -2,13 +2,55 @@
 
 setwd("C:/Users/macku/OneDrive/Dokumenty/WWEECC/WEC_26/data")
 df <- read.csv("players_quarters_final.csv")
-
 library(tidyverse)
 library(skimr) 
+library(tidyverse)
+library(sandwich)
+library(lmtest)
+
+###### LOGIT MVP #######
+
+# Ensure the dependent variable is strictly 0 and 1
+df <- df %>%
+  mutate(scored_after_binary = as.numeric(scored_after))
+
+# 2. Estimate the Standard Pooled Logit Model
+logit_mvp <- glm(
+  formula = scored_after_binary ~ last15_hsr + last15_sprints  + last15_peak_speed + last15_shots + 
+  I(cumul_shots - last15_shots) + cumul_distance + cumul_mean_max_speed 
+  + as.factor(position),
+  data = df,
+  family = binomial(link = "logit")
+)
+
+logit_mvp <- glm(
+  formula = scored_after_binary ~ last15_hsr + cumul_distance,
+  data = df,
+  family = binomial(link = "logit")
+)
+
+# 3. Calculate Clustered Standard Errors
+clustered_vcov <- vcovCL(logit_mvp, cluster = ~ player_appearance_id)
+
+# 4. Generate the Final Results Table
+robust_results <- coeftest(logit_mvp, vcov = clustered_vcov)
+print(robust_results)
+
+# 5. Calculate Odds Ratios for easier interpretation
+cat("\n=== ODDS RATIOS ===\n")
+# Exponentiating the coefficients gives us the Odds Ratios
+odds_ratios <- exp(coef(robust_results))
+print(odds_ratios)
+
+
+
+########
 
 
 
 
+
+###### DATA VALIDATION CHECKS ######
 
 cat("\n====================================================\n")
 cat("3. MISSING VALUES CHECK\n")
