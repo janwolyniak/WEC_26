@@ -9,8 +9,11 @@ library(lmtest)
 library(car)
 library(stargazer)
 
-df <- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE) %>%
+xd<- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE)
+
+df <- read_csv("knn_dataset.csv", show_col_types = FALSE) %>%
   mutate(
+    fixture_id = as.numeric(str_extract(scored_after_eval_key, "^\\d+")),
     scored_after_binary = as.numeric(scored_after),
     position = as.factor(position),
     is_home = as.factor(is_home),
@@ -23,7 +26,6 @@ df <- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE) %>%
     history_shots_top_third = cumul_shots_top_third - last15_shots_top_third,
     history_hsr = cumul_hsr - last15_hsr,
     history_sprints = cumul_sprints - last15_sprints,
-    history_distance = cumul_distance - last15_distance,
     
     # Calculate history for NEW passing variables
     history_pass_passed = cumul_pass_passed - last15_pass_passed,
@@ -33,9 +35,18 @@ df <- read_csv("players_quarters_final_step1.csv", show_col_types = FALSE) %>%
   ) %>%
   # Exclude goalkeepers as you mentioned
   filter(position != "G") %>%
-  # THE FIX: Drop any rows with NA values so the step() function has a constant sample size
   drop_na()
 
+##Testowy: - 1169, 1190, 1198, 1215, 1216, 1237 
+# Split the dataframe using fixture_id
+test_match_ids <- c(1169, 1190, 1198, 1215, 1216, 1237)
+df_train <- df %>% filter(!(fixture_id %in% test_match_ids))
+df_test  <- df %>% filter(fixture_id %in% test_match_ids)
+
+# Print a summary to verify the split was successful
+cat("\n--- Dataset Split Summary ---\n")
+cat("Training Set Rows:", nrow(df_train), "\n")
+cat("Testing Set Rows :", nrow(df_test), "\n\n")
 
 ###### LOGIT MVP #######
 
@@ -47,12 +58,12 @@ logit_bloated <- glm(
     
     # B. Recent Form (Last 15)
     last15_shots + last15_shots_on_target + last15_shots_under_press + last15_shots_top_third +
-    last15_hsr + last15_sprints + last15_distance + last15_peak_speed +
+    last15_hsr + last15_sprints  +
     last15_pass_received + last15_pass_passed + last15_pass_received_accurate + last15_pass_passed_accurate +
     
     # C. Historical Form (Prior to Last 15)
     history_shots + history_shots_on_target + history_shots_under_press + history_shots_top_third +
-    history_hsr + history_sprints + cumul_peak_speed +
+    history_hsr + history_sprints +
     history_pass_passed + history_pass_passed_accurate + history_pass_received + history_pass_received_accurate +
     
     # D. Sensible Interactions
@@ -60,10 +71,9 @@ logit_bloated <- glm(
     last15_hsr:last15_shots +                # High physical intensity combined with attacking product
     is_home:last15_shots +                   # Does home advantage improve shot danger?
     position:last15_pass_received_accurate + # Forwards receiving accurate passes vs Defenders
-    minutes_in_game:history_distance +       # Compounding fatigue effect
     last15_hsr:last15_pass_passed_accurate,  # High running intensity while maintaining accurate passing
     
-  data = df,
+  data = df_train,
   family = binomial(link = "logit")
 )
 print(logit_bloated)
@@ -80,6 +90,39 @@ odds_ratios <- exp(coef(robust_results_automated))
 print(odds_ratios)
 
 
+##Balanced ACCURACY##
+# Predict probabilities on the unseen test dataset
+df_test$predicted_probability <- predict(logit_bloated, newdata = df_test, type = "response")
+
+# Convert probabilities to a binary prediction. 
+# 0.5 is standard, but you can lower it for rare events like scoring.
+threshold <- 0.05 
+df_test$predicted_class <- ifelse(df_test$predicted_probability >= threshold, 1, 0)
+
+# Generate a Confusion Matrix ensuring both 0 and 1 levels are present
+conf_matrix <- table(
+  Predicted = factor(df_test$predicted_class, levels = c(0, 1)), 
+  Actual = factor(df_test$scored_after_binary, levels = c(0, 1))
+)
+
+print(conf_matrix)
+
+# Extract metrics from the 2x2 confusion matrix
+TN <- conf_matrix[1, 1] # True Negatives
+FN <- conf_matrix[1, 2] # False Negatives
+FP <- conf_matrix[2, 1] # False Positives
+TP <- conf_matrix[2, 2] # True Positives
+
+# Calculate Sensitivity (TPR) and Specificity (TNR)
+sensitivity <- ifelse((TP + FN) > 0, TP / (TP + FN), NA)
+specificity <- ifelse((TN + FP) > 0, TN / (TN + FP), NA)
+
+# Calculate Balanced Accuracy
+(balanced_accuracy <- (sensitivity + specificity) / 2)
+
+
+
+##PUBLICATION TABLES
 robust_se <- sqrt(diag(clustered_vcov_automated))
 stargazer(
   logit_automated, 
@@ -92,23 +135,7 @@ stargazer(
   digits = 3
 )
 
-odds_ratio_table <- data.frame(
-  Variable = rownames(robust_results_automated),
-  Odds_Ratio = round(exp(robust_results_automated[, "Estimate"]), 3),
-  Robust_SE = round(robust_results_automated[, "Std. Error"], 4),
-  P_Value = round(robust_results_automated[, "Pr(>|z|)"], 4)
-) %>%
-  mutate(
-    Significance = case_when(
-      P_Value < 0.001 ~ "***",
-      P_Value < 0.01 ~ "**",
-      P_Value < 0.05 ~ "*",
-      TRUE ~ ""
-    )
-  ) %>%
-  arrange(P_Value) # Sorts the table so your best predictors are at the top!
 
-# Print the clean dataframe as a nice HTML table
 library(knitr)
 library(kableExtra)
 
@@ -123,6 +150,7 @@ odds_ratio_table <- data.frame(
       P_Value < 0.001 ~ "***",
       P_Value < 0.01 ~ "**",
       P_Value < 0.05 ~ "*",
+      P_Value < 0.1 ~ ".",
       TRUE ~ ""
     )
   ) %>%
@@ -145,76 +173,3 @@ odds_ratio_table %>%
 
 
 
-
-
-###### DATA VALIDATION CHECKS ######
-
-cat("\n====================================================\n")
-cat("3. MISSING VALUES CHECK\n")
-cat("====================================================\n")
-missing_summary <- df %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(cols = everything(), names_to = "variable", values_to = "missing_count") %>%
-  filter(missing_count > 0) %>%
-  mutate(missing_percentage = round((missing_count / nrow(df)) * 100, 2))
-
-if (nrow(missing_summary) == 0) {
-  cat("Great news! There are no missing values in the dataset.\n")
-} else {
-  cat("Missing values found in the following columns:\n")
-  print(missing_summary)
-}
-
-cat("\n====================================================\n")
-cat("4. DUPLICATES CHECK\n")
-cat("====================================================\n")
-# Each row should uniquely represent one player at one specific checkpoint
-duplicates <- df %>%
-  group_by(player_appearance_id, checkpoint) %>%
-  filter(n() > 1)
-
-cat("Number of duplicate records (based on player_appearance_id + checkpoint):", nrow(duplicates), "\n")
-
-cat("\n====================================================\n")
-cat("5. LOGICAL COHERENCE CHECKS\n")
-cat("====================================================\n")
-
-# A. Minute coherence (minute_in should be strictly less than minute_out)
-invalid_minutes <- df %>% filter(minute_in >= minute_out)
-cat("Rows where 'minute_in' >= 'minute_out':", nrow(invalid_minutes), "\n")
-
-# B. Cumulative vs Last 15 minutes metrics coherence
-# Cumulative metrics should always be greater than or equal to the "last 15" metrics
-logic_sprints <- df %>% filter(cumul_sprints < last15_sprints)
-cat("Rows where cumul_sprints < last15_sprints:", nrow(logic_sprints), "\n")
-
-logic_hsr <- df %>% filter(cumul_hsr < last15_hsr)
-cat("Rows where cumul_hsr < last15_hsr:", nrow(logic_hsr), "\n")
-
-logic_distance <- df %>% filter(cumul_distance < last15_distance)
-cat("Rows where cumul_distance < last15_distance:", nrow(logic_distance), "\n")
-
-logic_shots <- df %>% filter(cumul_shots < last15_shots)
-cat("Rows where cumul_shots < last15_shots:", nrow(logic_shots), "\n")
-
-cat("\n====================================================\n")
-cat("6. TARGET VARIABLE DISTRIBUTION\n")
-cat("====================================================\n")
-# Checking class imbalance for the dependent variable 'scored_after'
-target_dist <- df %>%
-  count(scored_after) %>%
-  mutate(
-    percentage = round((n / sum(n)) * 100, 2)
-  )
-
-print(target_dist)
-cat("\nNote: You are likely dealing with a highly imbalanced dataset, which is common in football goal prediction.\n")
-
-cat("\n====================================================\n")
-cat("7. CHECKPOINT DISTRIBUTION\n")
-cat("====================================================\n")
-checkpoint_dist <- df %>%
-  count(checkpoint, checkpoint_period, checkpoint_min) %>%
-  arrange(checkpoint_period, checkpoint_min)
-
-print(checkpoint_dist)
