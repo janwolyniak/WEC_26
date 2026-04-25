@@ -329,6 +329,36 @@
   - model summary
   - threshold summary
 
+# `notebooks/ft_transformer_search.ipynb`
+
+## FT-transformer search scaffold
+
+- Added a dedicated FT-transformer search notebook for a heavier architecture sweep under the same frozen fold protocol.
+- Kept the same trimmed sequence setup used in the earlier neural benchmarks.
+- Configured the notebook to export search outputs to `artifacts/ft_transformer_search/`.
+
+## Added objective variants
+
+- Included BCE-based FT-transformer configurations.
+- Included focal-loss FT-transformer configurations.
+- Added Poisson-based rare-event variants:
+  - `ft_wide_poisson`
+  - `ft_deep_poisson`
+
+## Poisson formulation
+
+- Implemented the Poisson option as an intensity model rather than a direct binary-probability loss.
+- The model predicts log-intensity.
+- Training uses Poisson negative log-likelihood on the binary event target.
+- Validation and threshold tuning convert intensity to probability using:
+  - `p(goal) = 1 - exp(-lambda)`
+- This keeps the output compatible with the same PR AUC, ROC AUC, Brier score, and threshold-tuning workflow as the other FT-transformer variants.
+
+## Execution status
+
+- The notebook structure and objective options were implemented.
+- The search notebook has not been rerun yet after adding the Poisson variants.
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
