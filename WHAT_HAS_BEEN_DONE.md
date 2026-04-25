@@ -270,6 +270,28 @@
   - top-feature tables for fitted models
   - a plot for the best model's top features
 
+## Sequence-family trimming and ablation update
+
+- Updated `notebooks/sequencing_model_pipeline.ipynb` to add ablation-driven trimming focused on the strongest `seq15m` and `seqpos` signals.
+- Added explicit trimmed sequence registries:
+  - `SEQ15M_TRIMMED_FEATURES`
+  - `SEQPOS_TRIMMED_FEATURES`
+- Added new comparison sets:
+  - `base_plus_seq15m_trimmed`
+  - `base_plus_seqpos_trimmed`
+  - `base_plus_trimmed`
+- Added balanced accuracy to the notebook metrics and exported summaries.
+- Added a dedicated `xgb_ablation_summary.csv` artifact for quick comparison of the trimmed XGBoost variants.
+
+## Result of trimmed ablation
+
+- Full sequence inclusion remained too noisy for the current table representation.
+- Trimming improved the sequence variants materially relative to the full sequence block.
+- For XGBoost:
+  - `base_context` remained best on PR AUC
+  - `base_plus_trimmed` achieved the best balanced accuracy among the XGBoost sequence variants
+- This means the trimmed sequence families are much more defensible than the full sequence block, but they still do not beat the plain context baseline on the primary selection metric.
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
