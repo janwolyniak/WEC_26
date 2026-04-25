@@ -264,6 +264,13 @@
 - Reduced the notebook outputs to a minimal export summary and a preview of the final KNN table.
 - Narrowed the export behavior so the notebook now writes only `data/knn_dataset.csv`.
 
+## Bug fix for direct minute-window mapping
+
+- Fixed the cleaned KNN notebook so it no longer expects engineered source columns like `minute_in_H1_15`.
+- Replaced the old checkpoint-compression helper with direct mapping from raw `minute_in` values into `minute_in_window`.
+- Removed the unused `minute_out_window` creation step from the slim KNN notebook.
+- This makes the notebook compatible with the current `data/players_quarters_final.csv` schema, which only contains raw `minute_in` and `minute_out`.
+
 ## Pass-based feature engineering
 
 ### Absolute minute and checkpoint mapping
