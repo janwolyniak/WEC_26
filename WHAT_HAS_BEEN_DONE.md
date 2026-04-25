@@ -639,3 +639,39 @@
   - RQ5 temporal comparison
   - RQ6 relative-intensity coefficient ranking
   - RQ7 context permutation-importance ranking
+
+## KNN pipeline notebook
+
+- Added a new executed notebook at `notebooks/knn_pipeline.ipynb`.
+- Built the notebook directly on top of `data/knn_dataset.csv` instead of regenerating features.
+- Added dataset validation checks for:
+  - required columns
+  - unique `scored_after_eval_key`
+  - binary `scored_after`
+- Derived `group_id` from the first segment of `scored_after_eval_key` so evaluation stays grouped at the match-like level.
+- Defined explicit feature roles for:
+  - numeric predictors
+  - categorical predictors
+  - boolean predictors
+- Implemented a leakage-safe sklearn pipeline with:
+  - median imputation + standard scaling for numeric features
+  - most-frequent imputation + one-hot encoding for categorical features
+  - boolean-to-integer conversion for boolean features
+  - `KNeighborsClassifier` as the final estimator
+- Used grouped and stratified 5-fold cross-validation via `StratifiedGroupKFold`.
+- Reported the following metrics for every run:
+  - PR AUC
+  - ROC AUC
+  - balanced accuracy
+  - Brier score
+- Added a baseline KNN run and a compact hyperparameter search over:
+  - `n_neighbors`
+  - `weights`
+  - Minkowski distance with `p in {1, 2}`
+- Ranked the search results by mean PR AUC to match the rare-positive classification setup.
+- The executed notebook currently selects `n_neighbors=31`, `weights="distance"`, `p=1` as the best tested configuration.
+- Best mean cross-validated metrics in the current notebook run:
+  - PR AUC: `0.0963`
+  - ROC AUC: `0.6152`
+  - balanced accuracy: `0.5000`
+  - Brier score: `0.0558`
