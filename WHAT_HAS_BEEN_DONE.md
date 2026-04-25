@@ -120,6 +120,27 @@
 - Built an outside-window summary to count rows whose `minute_in` or `minute_out` did not fall into any defined checkpoint window.
 - Displayed a preview including original minute columns and a subset of the engineered indicators.
 
+### Exact engineered features added at this stage
+
+- Added the following binary `minute_in` checkpoint features:
+  - `minute_in_H1_15`
+  - `minute_in_H1_30`
+  - `minute_in_H1_45`
+  - `minute_in_H2_15`
+  - `minute_in_H2_30`
+  - `minute_in_H2_45`
+  - `minute_in_ET1_15`
+  - `minute_in_ET2_15`
+- Added the following binary `minute_out` checkpoint features:
+  - `minute_out_H1_15`
+  - `minute_out_H1_30`
+  - `minute_out_H1_45`
+  - `minute_out_H2_15`
+  - `minute_out_H2_30`
+  - `minute_out_H2_45`
+  - `minute_out_ET1_15`
+  - `minute_out_ET2_15`
+
 ## Shared-column map for future linking
 
 - Implemented `build_column_presence_map(table_dict)` across all loaded tables.
@@ -170,6 +191,12 @@
   - `minute_in_window`
   - `minute_out_window`
 - Displayed a preview of the replacement features together with selected minute-indicator columns.
+
+### Exact replacement features added to `clean_df`
+
+- Added `minutes_in_game`
+- Added `minute_in_window`
+- Added `minute_out_window`
 
 ### Removal of temporary minute-indicator columns
 
@@ -231,6 +258,13 @@
   - a row preview
   - descriptive statistics for the checkpoint pass features
 
+### Exact pass features added to `clean_df`
+
+- Added `last15_pass_received`
+- Added `last15_pass_passed`
+- Added `last15_pass_received_accurate`
+- Added `last15_pass_passed_accurate`
+
 ## Cumulative pass features by player
 
 - Built `checkpoint_order_for_cumsum` from the defined checkpoint order restricted to checkpoints actually present in `clean_df`.
@@ -251,6 +285,51 @@
 - Displayed:
   - a row preview of current and cumulative pass features
   - descriptive statistics for the cumulative pass features
+
+### Exact cumulative features added to `clean_df`
+
+- Added `cumul_pass_passed`
+- Added `cumul_pass_passed_accurate`
+- Added `cumul_pass_received`
+- Added `cumul_pass_received_accurate`
+
+## Exact feature inventory added by the notebook
+
+- Temporary engineered checkpoint indicators:
+  - `minute_in_H1_15`
+  - `minute_in_H1_30`
+  - `minute_in_H1_45`
+  - `minute_in_H2_15`
+  - `minute_in_H2_30`
+  - `minute_in_H2_45`
+  - `minute_in_ET1_15`
+  - `minute_in_ET2_15`
+  - `minute_out_H1_15`
+  - `minute_out_H1_30`
+  - `minute_out_H1_45`
+  - `minute_out_H2_15`
+  - `minute_out_H2_30`
+  - `minute_out_H2_45`
+  - `minute_out_ET1_15`
+  - `minute_out_ET2_15`
+- Final retained Step-1 features:
+  - `minutes_in_game`
+  - `minute_in_window`
+  - `minute_out_window`
+  - `last15_pass_received`
+  - `last15_pass_passed`
+  - `last15_pass_received_accurate`
+  - `last15_pass_passed_accurate`
+  - `cumul_pass_passed`
+  - `cumul_pass_passed_accurate`
+  - `cumul_pass_received`
+  - `cumul_pass_received_accurate`
+- Explicitly removed after the replacement step:
+  - `checkpoint_period`
+  - `checkpoint_min`
+  - `minute_in`
+  - `minute_out`
+- Temporary checkpoint indicator features were also dropped after the compressed replacement columns were created.
 
 ## Export
 
