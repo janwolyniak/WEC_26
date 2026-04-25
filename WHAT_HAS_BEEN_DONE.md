@@ -403,3 +403,16 @@
   - strongest positive effect: `seqpos_mean_run_distance_per_possession`
   - strongest negative effect: `seqpos_unmatched_pressure_share`
   - smaller positive effects remain for `seqpos_linked_pressure_total` and `seqpos_possession_count`
+- Added SHAP-based interpretation for the tuned possession-only logistic model so the notebook now explicitly answers RQ2 from `docs/WEC2026_Problem_description.md`.
+- Exported new RQ2 / SHAP artifacts to `artifacts/sequential_goal_forecasting_geometry/`:
+  - `tuned_possession_shap_table.csv`
+  - `tuned_possession_shap_bar.png`
+  - `tuned_possession_shap_beeswarm.png`
+- The SHAP determinant ranking confirms the compact behavioural answer to RQ2:
+  - strongest positive determinant: `seqpos_mean_run_distance_per_possession` (possession run-distance intensity)
+  - strongest negative determinant: `seqpos_unmatched_pressure_share` (pressure events that do not map cleanly to possessions)
+  - weaker positive determinants: `seqpos_linked_pressure_total` and `seqpos_possession_count`
+  - near-zero determinant after L1 shrinkage: `seqpos_mean_runs_per_possession`
+- The sequence notebook now covers both:
+  - RQ1 via grouped predictive metrics and ablation comparisons
+  - RQ2 via tuned sparse-model coefficients plus SHAP-based behavioural importance and directionality
