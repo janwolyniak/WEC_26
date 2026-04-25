@@ -476,6 +476,53 @@
   - `minutes_in_game_to_checkpoint` coefficient = `-0.1779`
   - SHAP rank among the added Step-1 variables = `5`
   - interpretation in this multivariable setting: more minutes already played by the checkpoint is associated with a lower later scoring probability, conditional on the other possession and passing variables in the model
+- Audited the movement-derived variables after identifying implausible computer-vision outputs:
+  - `last15_distance` has a maximum of `8028.31` meters in a 15-minute window
+  - `29` checkpoint rows exceed `5.5 km` in `last15_distance`
+  - `last15_peak_speed` reaches about `50.9 km/h`
+- Treated the whole distance/speed family as unreliable for modeling:
+  - removed base features `last15_distance`, `last15_mean_max_speed`, `last15_peak_speed`, `cumul_distance`, `cumul_mean_max_speed`, `cumul_peak_speed`
+  - removed sequence features derived from run distance / speed, including possession run-distance summaries
+  - kept non-distance run structure features such as run counts and stage shares
+- Updated `notebooks/sequential_goal_forecasting_geometry.ipynb` so the active RQ1/RQ2 analysis now excludes these movement-magnitude variables entirely.
+- This exclusion surfaced a preprocessing issue in the notebook: `SimpleImputer(fill_value=0.0)` failed once the remaining numeric block became mostly integer-valued, so it was corrected to `fill_value=0`.
+- Re-ran the full sequence notebook after the exclusion.
+- Updated results on the cleaned feature space:
+  - `logreg + base_only` balanced accuracy = `0.5776`
+  - `logreg + base_plus_possession_sequence_leaner` balanced accuracy = `0.5756`
+  - the best expanded RQ2 configuration is now `penalty=l1`, `C=0.03`, `class_weight=balanced`
+  - expanded RQ2 balanced accuracy = `0.6029`
+  - expanded RQ2 ROC AUC = `0.6191`
+  - expanded RQ2 PR AUC = `0.1006`
+- The tuned possession-only interpretation changed materially after removing distance/speed variables:
+  - strongest remaining negative effect: `seqpos_unmatched_pressure_share`
+  - smaller positive effects: `seqpos_linked_pressure_total`, `seqpos_possession_count`
+  - `seqpos_mean_runs_per_possession` shrinks to zero
+- The expanded RQ2 story also changed:
+  - strongest determinant is now `minutes_in_game_to_checkpoint`
+  - next nonzero added determinant is `cumul_pass_passed`
+  - most other added pass variables shrink to zero in the sparse fit
+- Confirmed how `minutes_in_game` was created in `notebooks/data_cleaning_feature_selection_general.ipynb`:
+  - it is deterministically defined as `minute_out + 1 - minute_in`
+  - so it is “fixed” by construction in the Step-1 table
+  - but it is a full-match exposure variable, not checkpoint-safe, which is why the notebook continues to use `minutes_in_game_to_checkpoint` instead
+- Updated `notebooks/data_cleaning_feature_selection_general.ipynb` so the cleaned checkpoint datasets themselves now enforce the same movement-data exclusion and no-leakage playtime rule.
+- In the cleaning notebook:
+  - dropped distance/speed-derived columns from `players_quarters_final.csv` before downstream feature engineering
+  - changed `minutes_in_game` in `players_quarters_final_step1.csv` from full-match exposure to checkpoint-cumulative exposure
+  - new definition: `checkpoint_cont_min - minute_in + 1`, clipped at `0`
+  - exported both cleaned datasets back to disk from the notebook
+- Re-executed `notebooks/data_cleaning_feature_selection_general.ipynb` and rewrote:
+  - `data/players_quarters_final.csv`
+  - `data/players_quarters_final_step1.csv`
+- Post-run validation confirms:
+  - `players_quarters_final.csv` contains no columns with `distance` or `speed` in the name
+  - `players_quarters_final_step1.csv` contains no columns with `distance` or `speed` in the name
+  - `players_quarters_final_step1.csv` retains `minutes_in_game`, but it is now checkpoint-cumulative and leakage-safe
+  - exact validation result: `0` mismatches against the formula derived from `players_quarters_final.csv`
+- Current cleaned dataset shapes after the rewrite:
+  - `players_quarters_final.csv`: `(3486, 43)`
+  - `players_quarters_final_step1.csv`: `(3486, 34)`
 - Added a dedicated RQ3-RQ7 implementation path:
   - `src/python/rq3_rq7_ablation.py`
   - `notebooks/rq3_rq7_ablation_matrix.ipynb`
