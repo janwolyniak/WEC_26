@@ -370,3 +370,21 @@
   - `logreg + base_plus_possession_sequence_trimmed` reached balanced accuracy `0.5647` vs `0.5608` for the full possession family
   - `rf + base_plus_both_trimmed` achieved the strongest tree-based sequence variant with ROC AUC `0.6574` and PR AUC `0.1245`
 - The baseline `logreg + base_only` model still remains the best balanced-accuracy reference at `0.5831`, so the current interpretation is that sequence features are promising but not yet net-positive enough to replace the simpler baseline.
+- Added a third pass inside `sequential_goal_forecasting_geometry.ipynb` for redundancy-pruned lean sequence subsets and exported the rationale to `artifacts/sequential_goal_forecasting_geometry/lean_feature_selection.csv`.
+- The leaner set keeps 5 minute-hybrid features and 5 possession-sequence features after removing highly correlated pairs such as:
+  - `seqpos_mean_run_distance_per_possession` vs `seqpos_max_run_distance_per_possession`
+  - `seq15m_pressure_total` vs `seq15m_recency_weighted_pressure_total`
+  - `seq15m_angle_concentration` vs `seq15m_pressure_angle_availability_rate`
+  - `seqpos_mean_runs_per_possession` vs `seqpos_mean_possession_span`
+- Leaner ablation results further improved the sequence track:
+  - `logreg + base_plus_possession_sequence_leaner` reached balanced accuracy `0.5806`, nearly matching the base-only logistic benchmark `0.5831`
+  - `logreg + base_plus_minute_hybrid_leaner` reached balanced accuracy `0.5750`
+  - `logreg + base_plus_both_leaner` reached balanced accuracy `0.5681`
+  - `rf + base_plus_possession_sequence_leaner` achieved the strongest tree balanced accuracy among sequence variants at `0.5141`
+  - `rf + base_plus_both_leaner` achieved the best lean combined ranking metrics with ROC AUC `0.6575` and PR AUC `0.1303`
+- The lean interpretation table is now dominated by a smaller, more stable set of effects:
+  - possession run-distance intensity
+  - pressure volume under pressure
+  - pressure-induced turnovers
+  - possession count / runs-per-possession structure
+  - unmatched-pressure share
