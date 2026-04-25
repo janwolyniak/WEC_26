@@ -171,7 +171,7 @@ def run_key_integrity_checks(
                     "May happen for appearances with no eligible checkpoint rows."
                 ),
                 resolution_action=(
-                    "Inspect missing appearance IDs and define handling policy (drop, map, or keep for event-only analyses)."
+                    "For checkpoint modeling, keep only rows with `player_appearance_id` in players_quarters_final; keep full table separately for descriptive/event-only analyses."
                     if unmatched_to_base > 0
                     else "No action required."
                 ),
@@ -483,6 +483,14 @@ def write_cleaning_rules(
     lines.append("4. Keep key integrity for all `*_player_appearance_id` links.")
     lines.append("5. Enforce range/consistency constraints: non-negative distances/speeds, minute bounds, and checkpoint consistency.")
     lines.append("6. Keep `scored_after` strictly binary (0/1).")
+    lines.append("")
+    lines.append("## Modeling Scope Policy (Checkpoint Task)")
+    lines.append("")
+    lines.append("1. Use `players_quarters_final.player_appearance_id` as the canonical modeling ID set.")
+    lines.append("2. For supervised checkpoint modeling, filter event-table rows to canonical IDs only.")
+    lines.append("3. Keep unfiltered event tables as separate reference datasets for descriptive/event-only analyses.")
+    lines.append("4. Persist kept/dropped counts and percentages for each event table in a scope report artifact.")
+    lines.append("5. Any downstream feature-generation script must consume only scope-filtered event tables for modeling outputs.")
     lines.append("")
     lines.append("## Current Project Actions")
     lines.append("")
