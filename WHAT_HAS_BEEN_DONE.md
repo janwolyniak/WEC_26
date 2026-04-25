@@ -675,3 +675,30 @@
   - ROC AUC: `0.6152`
   - balanced accuracy: `0.5000`
   - Brier score: `0.0558`
+
+## KNN notebook extension: ID-drop and threshold tuning
+
+- Extended `notebooks/knn_pipeline.ipynb` only by appending new cells; the original notebook cells were left unchanged.
+- Added a follow-up KNN experiment that drops the ID-like distance features:
+  - `player_id`
+  - `jersey_number`
+- Rebuilt the reduced feature-role table inside the appended cells so the modified experiment is explicit and local to the notebook extension.
+- Reran the same compact KNN hyperparameter search on the reduced feature set.
+- The best reduced-feature configuration is now:
+  - `n_neighbors=31`
+  - `weights="distance"`
+  - `p=2`
+- Best reduced-feature mean cross-validated metrics:
+  - PR AUC: `0.0967`
+  - ROC AUC: `0.6251`
+  - balanced accuracy: `0.5000`
+  - Brier score: `0.0555`
+- Added a threshold-tuning extension based on out-of-fold probabilities from the reduced-feature best KNN model.
+- Evaluated thresholds from `0.05` to `0.30` and ranked them by balanced accuracy.
+- Best threshold in the current notebook run:
+  - threshold: `0.05`
+  - balanced accuracy: `0.6098`
+  - precision: `0.0820`
+  - recall: `0.7143`
+  - predicted positive rate: `0.5075`
+- This confirms that the default `0.5` threshold was too conservative for the rare-positive target and that threshold tuning materially improves classification sensitivity.
