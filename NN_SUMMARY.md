@@ -21,6 +21,14 @@ The neural line therefore evolved in a staged way:
 - fourth, move to an FT-transformer-style model that is better suited to interaction-rich tabular structure
 - fifth, extend the FT-transformer search toward stronger objectives, including focal and Poisson-style rare-event modeling
 
+## Figures
+
+The following paper-ready figures accompany this summary:
+
+- XGBoost sequence ablation: [sequence_xgb_ablation.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_xgb_ablation.png)
+- neural benchmark comparison: [neural_benchmark_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/neural_benchmark_comparison.png)
+- sequence-to-neural evolution: [sequence_nn_evolution.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_nn_evolution.png)
+
 ## 2. Data representation and protocol
 
 The sequence-aware modeling line uses `data/sequencing_dataset.csv`, which contains `3,486` rows and `99` columns. The target prevalence is again approximately `5.82%`, so the task remains a rare-event binary classification problem.
@@ -133,6 +141,8 @@ These results matter for the paper because they show a nuanced outcome:
 
 This means the sequence features were directionally useful, but the initial representation and model family were not yet extracting their value efficiently.
 
+This ablation pattern is visualized directly in [sequence_xgb_ablation.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_xgb_ablation.png).
+
 ## 4. Stage 2: Why an RNN was rejected
 
 At this point, an obvious idea would have been to try RNN, GRU, or LSTM models. That path was explicitly rejected as the main next step.
@@ -194,6 +204,8 @@ The substantive conclusion is very clear:
 - the FT-transformer-style model was the first neural architecture to improve PR AUC over the tree benchmark
 
 This result is exactly the kind of methodological story a paper should tell: the first custom neural design improved classification balance but not ranking, whereas the transformer-style tabular architecture improved the ranking objective that mattered most.
+
+The cross-model comparison is summarized in [neural_benchmark_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/neural_benchmark_comparison.png), and the full development arc from sequence ablation to neural modeling is shown in [sequence_nn_evolution.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_nn_evolution.png).
 
 ## 6. Stage 4: Why the FT-transformer worked better
 

@@ -11,6 +11,13 @@ This document summarizes the KNN line of modeling built on `data/knn_dataset.csv
 
 In practical terms, the KNN experiments answer a narrow but important question: if two checkpoint rows are similar in recent/cumulative performance and match context, can a neighborhood vote recover later-goal risk with acceptable discrimination?
 
+## Figures
+
+The following paper-ready figures accompany this summary:
+
+- KNN development trajectory: [knn_evolution_metrics.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_evolution_metrics.png)
+- KNN threshold trade-offs: [knn_threshold_tradeoff.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_threshold_tradeoff.png)
+
 ## 2. Data representation and evaluation protocol
 
 The KNN notebook uses `data/knn_dataset.csv`, which contains `3,486` rows and `31` columns. The target prevalence is approximately `5.82%`, so the task is a strongly imbalanced binary classification problem.
@@ -197,6 +204,8 @@ Threshold tuning for the PCA model selected:
 - pooled OOF ROC AUC = `0.5962`
 
 Compared with the reduced-feature no-PCA threshold solution, the PCA model is more selective and less recall-heavy.
+
+These stage-wise changes are visualized in [knn_evolution_metrics.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_evolution_metrics.png), while the threshold sensitivity of the reduced and PCA-enhanced variants is shown in [knn_threshold_tradeoff.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_threshold_tradeoff.png).
 
 ## 5. Why these changes were made
 

@@ -390,6 +390,18 @@
   - discussion of how the results answer RQ1-RQ7 from `docs/WEC2026_Problem_description.md`
   - limitations and paper-ready concluding interpretation
 
+## Plot package for the summaries
+
+- Added a dedicated `plots/` folder with paper-ready figures tied to the two summary documents.
+- Generated KNN figures:
+  - `plots/knn_evolution_metrics.png`
+  - `plots/knn_threshold_tradeoff.png`
+- Generated sequence/neural figures:
+  - `plots/sequence_xgb_ablation.png`
+  - `plots/neural_benchmark_comparison.png`
+  - `plots/sequence_nn_evolution.png`
+- Updated `KNN_SUMMARY.md` and `NN_SUMMARY.md` to reference these figures directly.
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
