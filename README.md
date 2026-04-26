@@ -151,7 +151,6 @@ Main outputs:
 
 - `artifacts/tuning/xgb_trials.csv`
 - `artifacts/tuning/best_params_final_top20.json`
-- `artifacts/tuning/pr_curves_final_top20.png`
 - `docs/model_tuning.md`
 
 ### Step 9: Calibrate the Final Model and Select Threshold
