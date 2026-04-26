@@ -354,6 +354,22 @@
   - `p(goal) = 1 - exp(-lambda)`
 - This keeps the output compatible with the same PR AUC, ROC AUC, Brier score, and threshold-tuning workflow as the other FT-transformer variants.
 
+## Research-question alignment
+
+- Updated the FT-transformer search notebook so Poisson-based runs are explicitly framed in a way that best supports the contest research questions.
+- The notebook now distinguishes between:
+  - public output for reporting: later-goal probability
+  - internal model interpretation for Poisson variants: scoring intensity `lambda`
+- Added notebook-level guidance that Poisson runs should answer the research questions through:
+  - `goal_probability = 1 - exp(-lambda)`
+  - while still allowing feature effects to be discussed as changes in scoring intensity
+- Updated pooled out-of-fold exports so Poisson-capable runs can save:
+  - `goal_probability`
+  - `log_lambda_rate`
+  - `lambda_rate`
+  - interpretation mode metadata
+- This makes the notebook better suited for RQ1-RQ7 reporting without changing the contest-facing evaluation target.
+
 ## Execution status
 
 - The notebook structure and objective options were implemented.
