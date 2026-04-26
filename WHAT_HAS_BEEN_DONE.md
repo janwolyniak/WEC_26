@@ -511,3 +511,19 @@
   - recall: `0.4236`
   - predicted positive rate: `0.2900`
 - The PCA variant improved PR AUC, but the earlier reduced-feature non-PCA threshold-tuned model still produced the stronger balanced-accuracy result.
+
+# Summary structure refresh
+
+## More paper-ready sectioning for `KNN_SUMMARY.md` and `NN_SUMMARY.md`
+
+- Updated both summary documents to use a cleaner manuscript-style numbered heading structure.
+- Reorganized the summaries so the material now follows a more paper-ready progression:
+  - modeling rationale
+  - figures
+  - data representation and evaluation protocol
+  - model development
+  - design logic and justification
+  - results and research-question interpretation
+  - discussion / limitations
+  - paper-ready takeaway
+- This change was editorial and structural; it did not alter the reported model results or the linked figures.

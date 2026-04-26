@@ -1,6 +1,6 @@
 # Sequence-Aware Neural Modeling Summary
 
-## 1. Purpose and modeling philosophy
+## 1. Modeling Rationale
 
 This document summarizes the sequence-aware and FT-transformer-oriented modeling line built on `data/sequencing_dataset.csv`, together with the intermediate baseline and neural comparison notebooks:
 
@@ -21,7 +21,7 @@ The neural line therefore evolved in a staged way:
 - fourth, move to an FT-transformer-style model that is better suited to interaction-rich tabular structure
 - fifth, extend the FT-transformer search toward stronger objectives, including focal and Poisson-style rare-event modeling
 
-## Figures
+## 2. Figures
 
 The following paper-ready figures accompany this summary:
 
@@ -30,7 +30,7 @@ The following paper-ready figures accompany this summary:
 - sequence-to-neural evolution: [sequence_nn_evolution.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_nn_evolution.png)
 - FT-transformer search comparison: [ft_transformer_search_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/ft_transformer_search_comparison.png)
 
-## 2. Data representation and protocol
+## 3. Data Representation And Evaluation Protocol
 
 The sequence-aware modeling line uses `data/sequencing_dataset.csv`, which contains `3,486` rows and `99` columns. The target prevalence is again approximately `5.82%`, so the task remains a rare-event binary classification problem.
 
@@ -54,7 +54,9 @@ The split protocol reuses the project’s frozen grouped evaluation metadata. `s
 
 The primary comparison metric is PR AUC. Secondary metrics are balanced accuracy, ROC AUC, and Brier score. This is the correct setup for the contest’s rare-event goal-prediction framing.
 
-## 3. Stage 1: Sequence-aware tabular benchmark
+## 4. Model Development
+
+### 4.1 Sequence-Aware Tabular Benchmark
 
 The first notebook, `sequencing_model_pipeline.ipynb`, asked a practical question:
 
@@ -73,7 +75,7 @@ It evaluated multiple feature sets:
 - `full_engineered`
 - trimmed `seq15m` and `seqpos` subsets
 
-### 3.1 Why a tabular benchmark came first
+### 4.1.1 Why A Tabular Benchmark Came First
 
 This was the correct first step for several reasons:
 
@@ -82,7 +84,7 @@ This was the correct first step for several reasons:
 - a small MLP provides a low-cost neural reference point
 - it lets the project answer whether more complex sequence-aware engineering is even helping before escalating model capacity
 
-### 3.2 Full sequence block: too noisy
+### 4.1.2 Full Sequence Block: Too Noisy
 
 The notebook showed that naively adding the entire sequence block degraded performance.
 
@@ -96,7 +98,7 @@ For `XGBoost`:
 
 This is an important substantive result. It means that richer sequence-aware representation is not automatically beneficial. The raw additional families included substantial noise or redundancy relative to the sample size.
 
-### 3.3 Trimming the sequence families
+### 4.1.3 Trimming The Sequence Families
 
 The next logical move was ablation-driven trimming. The project narrowed the sequence set to:
 
@@ -144,7 +146,7 @@ This means the sequence features were directionally useful, but the initial repr
 
 This ablation pattern is visualized directly in [sequence_xgb_ablation.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_xgb_ablation.png).
 
-## 4. Stage 2: Why an RNN was rejected
+### 4.2 Why An RNN Was Rejected
 
 At this point, an obvious idea would have been to try RNN, GRU, or LSTM models. That path was explicitly rejected as the main next step.
 
@@ -157,7 +159,7 @@ The reason is methodological, not stylistic:
 
 This is why the project pivoted to architectures that are natively stronger on interaction-rich tabular data.
 
-## 5. Stage 3: Dual-branch neural benchmark
+### 4.3 Dual-Branch Neural Benchmark
 
 The next notebook, `sequencing_dual_branch_nn.ipynb`, asked a more targeted question:
 
@@ -170,7 +172,7 @@ The notebook compared:
 - `dual_branch_residual_mlp`
 - `ft_transformer_lite`
 
-### 5.1 Dual-branch residual MLP design
+### 4.3.1 Dual-Branch Residual MLP Design
 
 The dual-branch architecture was deliberately aligned with the semantic structure of the data:
 
@@ -187,7 +189,7 @@ The dual-branch architecture was deliberately aligned with the semantic structur
 
 This architecture was motivated by a reasonable hypothesis: sequence features may not help when mixed naively with all other variables, but may become more useful when given a dedicated representation branch before fusion.
 
-### 5.2 Results of the dual-branch benchmark
+### 4.3.2 Results Of The Dual-Branch Benchmark
 
 The neural comparison results were:
 
@@ -208,11 +210,11 @@ This result is exactly the kind of methodological story a paper should tell: the
 
 The cross-model comparison is summarized in [neural_benchmark_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/neural_benchmark_comparison.png), and the full development arc from sequence ablation to neural modeling is shown in [sequence_nn_evolution.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_nn_evolution.png).
 
-## 6. Stage 4: Why the FT-transformer worked better
+### 4.4 Why The FT-Transformer Worked Better
 
 The FT-transformer-style model was a better fit than the dual-branch MLP for the following reasons.
 
-### 6.1 Tokenized feature interactions
+### 4.4.1 Tokenized Feature Interactions
 
 The model treats features as tokens rather than as one undifferentiated dense vector. This is attractive in the present setting because the signal is likely to depend on:
 
@@ -222,7 +224,7 @@ The model treats features as tokens rather than as one undifferentiated dense ve
 
 These are exactly the kinds of relationships that self-attention can model more flexibly than a shallow feed-forward network.
 
-### 6.2 Better handling of mixed data types
+### 4.4.2 Better Handling Of Mixed Data Types
 
 The checkpoint rows combine:
 
@@ -232,7 +234,7 @@ The checkpoint rows combine:
 
 FT-style architectures are explicitly designed for this mixed tabular regime. That is a better match to the current representation than either a naive MLP or an RNN.
 
-### 6.3 Rare-event learning
+### 4.4.3 Rare-Event Learning
 
 The contest target is strongly imbalanced. The FT-transformer line is therefore being extended with:
 
@@ -242,7 +244,7 @@ The contest target is strongly imbalanced. The FT-transformer line is therefore 
 
 This is an appropriate escalation because once the model family is structurally aligned with the data, the next performance gains are more likely to come from better rare-event optimization than from indiscriminate architectural complexity.
 
-## 7. Stage 5: FT-transformer search and Poisson/intensity framing
+### 4.5 FT-Transformer Search And Poisson/Intensity Framing
 
 The heavier search notebook, `ft_transformer_search.ipynb`, was created to exploit the available compute budget in a disciplined way rather than through ad hoc experimentation.
 
@@ -273,7 +275,7 @@ For Poisson variants, the logic is:
 
 This is the correct way to use a Poisson-like rare-event formulation here. It allows the model to remain a probability predictor for evaluation while giving a coherent latent-process interpretation for RQ2 and the mechanism-oriented questions.
 
-### 7.1 Search results
+### 4.5.1 Search Results
 
 The completed FT-transformer search produced the following ranking:
 
@@ -296,37 +298,37 @@ Third, the search validates the broader modeling hypothesis: once the representa
 
 The complete FT-search comparison is visualized in [ft_transformer_search_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/ft_transformer_search_comparison.png).
 
-## 8. Why each change was made
+## 5. Design Logic And Justification
 
 The entire evolution of the neural line was driven by explicit failures or partial successes in the previous stage.
 
-### 8.1 Why build the sequence-aware table first
+### 5.1 Why Build The Sequence-Aware Table First
 
 Because the available event information had already been aggregated into a checkpoint-aligned wide dataset, the first requirement was to see whether structured sequence summaries add value at all.
 
-### 8.2 Why trim the sequence families
+### 5.2 Why Trim The Sequence Families
 
 The full sequence block hurt performance. That made trimming mandatory. The purpose of trimming was not merely regularization; it was to retain the most interpretable football signals while removing low-value or noisy expansions, especially from `seqextra_*`.
 
-### 8.3 Why move from XGBoost to custom neural models
+### 5.3 Why Move From XGBoost To Custom Neural Models
 
 The trimmed tree benchmarks still left open the possibility that sequence information was useful but difficult to extract through standard additive tree splits. A custom architecture was therefore justified.
 
-### 8.4 Why dual-branch first
+### 5.4 Why Dual-Branch First
 
 The dual-branch residual MLP was a semantically honest neural test. It asked whether base context and sequence information should be represented separately before fusion. This was a controlled step up in complexity.
 
-### 8.5 Why FT-transformer next
+### 5.5 Why FT-Transformer Next
 
 The dual-branch MLP improved balanced accuracy but not ranking quality. That suggested that the main remaining challenge was feature interaction learning, not merely nonlinear fusion. The FT-transformer was therefore a stronger next step than an even deeper MLP.
 
-### 8.6 Why Poisson/intensity variants
+### 5.6 Why Poisson/Intensity Variants
 
 The outcome is rare, and the research questions are naturally compatible with an event-rate story. Poisson-based variants therefore offer a principled way to ask whether the model learns latent scoring intensity better than plain direct probability classification.
 
-## 9. How the sequence-aware and neural models answer the research questions
+## 6. Results And Research-Question Interpretation
 
-### RQ1: How well can player behavior predict later scoring?
+### 6.1 RQ1: How Well Can Player Behavior Predict Later Scoring?
 
 This modeling line gives the project its strongest answer to RQ1 so far.
 
@@ -344,7 +346,7 @@ Key results:
 
 Thus, player on-field behavior measured at checkpoints does predict later scoring above trivial baselines, and the updated evidence indicates that a stronger transformer-style neural model can exploit this structure better than both the current tree benchmark and the earlier lighter transformer baseline.
 
-### RQ2: Which aspects of player behavior determine scoring probability?
+### 6.2 RQ2: Which Aspects Of Player Behavior Determine Scoring Probability?
 
 This is where the sequence-aware line becomes especially valuable.
 
@@ -365,7 +367,7 @@ These features support an interpretable football story:
 
 The Poisson/intensity framing strengthens this interpretation further because it allows these features to be described as drivers of latent scoring intensity rather than only direct classifiers of a binary outcome. The fact that `ft_wide_poisson` is now the best PR AUC model makes that interpretation substantively relevant rather than merely theoretical.
 
-### RQ3: Are sprints and shots alone sufficient?
+### 6.3 RQ3: Are Sprints And Shots Alone Sufficient?
 
 The sequence-aware results argue against a “sprints and shots alone are sufficient” interpretation.
 
@@ -377,7 +379,7 @@ Why:
 
 Therefore, RQ3 should likely be answered cautiously: sprints and shots are useful, but not sufficient for the richest predictive and interpretive account.
 
-### RQ4: Does passing data and pressure behavior help?
+### 6.4 RQ4: Does Passing Data And Pressure Behavior Help?
 
 The sequence-aware line strongly supports the importance of pressure-linked and possession-linked information, even though the raw full feature expansion was too noisy.
 
@@ -392,7 +394,7 @@ This suggests that the answer to RQ4 is yes, but with an important qualifier:
 
 > passing and pressure information helps when represented in a compact, behaviorally structured way; it does not help when added as a broad, noisy feature block without careful selection.
 
-### RQ5: Does short-term or cumulative performance matter more?
+### 6.5 RQ5: Does Short-Term Or Cumulative Performance Matter More?
 
 The sequence-aware line points toward the importance of recent local structure rather than only cumulative totals.
 
@@ -404,7 +406,7 @@ Evidence:
 
 This suggests that the short-term patterning of behavior contributes meaningfully beyond static cumulative state.
 
-### RQ6: Does elevated recent intensity relative to overall level matter?
+### 6.6 RQ6: Does Elevated Recent Intensity Relative To Overall Level Matter?
 
 The sequence-aware modeling line is especially relevant here.
 
@@ -417,7 +419,7 @@ Features such as:
 
 directly operationalize the idea that local bursts or concentrated activity matter. Even when these features do not universally dominate the benchmark on their own, their survival through trimming indicates that relative short-term intensity is a plausible component of later scoring risk.
 
-### RQ7: Do external/context factors matter?
+### 6.7 RQ7: Do External/Context Factors Matter?
 
 Yes, and the neural line confirms this in two ways:
 
@@ -426,7 +428,7 @@ Yes, and the neural line confirms this in two ways:
 
 The dual-branch and FT-transformer architectures both assume that context and behavior should be jointly represented rather than separated analytically.
 
-## 10. Interpretation of the current results
+## 7. Discussion
 
 The current sequence-aware and neural evidence supports a balanced conclusion:
 
@@ -441,23 +443,23 @@ In other words, the project has already learned something important:
 
 > the bottleneck is not whether sequence information matters, but how that sequence information is represented and how its interactions are modeled.
 
-## 11. Limitations
+## 8. Limitations
 
 Several limitations should be stated clearly in the paper.
 
-### 11.1 Representation is still aggregated
+### 8.1 Representation Is Still Aggregated
 
 Even the neural line is learning from aggregated sequence summaries, not raw event chains. This limits how strongly one can interpret the model as a genuine event-sequence learner.
 
-### 11.2 Small-sample rare-event setting
+### 8.2 Small-Sample Rare-Event Setting
 
 The dataset is not large. With only `3,486` rows and around `5.8%` positives, high-capacity neural models are vulnerable to instability and metric variance.
 
-### 11.3 Calibration remains weaker in neural models
+### 8.3 Calibration Remains Weaker In Neural Models
 
 The current neural models have relatively poor Brier scores compared with the tree baselines. That does not invalidate them, but it means the final probability layer should be handled carefully if the paper emphasizes probabilistic decision support.
 
-## 12. Final paper-ready takeaway
+## 9. Paper-Ready Takeaway
 
 For the paper, the strongest concise statement is:
 

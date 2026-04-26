@@ -1,6 +1,6 @@
 # K-Nearest Neighbors (KNN) Modeling Summary
 
-## 1. Purpose and positioning
+## 1. Modeling Rationale
 
 This document summarizes the KNN line of modeling built on `data/knn_dataset.csv` and documented in [knn_pipeline.ipynb](/Users/jan/Documents/competitions/hackatons/WEC_26/notebooks/knn_pipeline.ipynb). The KNN model was not treated as the expected final contest winner. Instead, it served four scientific purposes that are directly useful for the research paper:
 
@@ -11,14 +11,14 @@ This document summarizes the KNN line of modeling built on `data/knn_dataset.csv
 
 In practical terms, the KNN experiments answer a narrow but important question: if two checkpoint rows are similar in recent/cumulative performance and match context, can a neighborhood vote recover later-goal risk with acceptable discrimination?
 
-## Figures
+## 2. Figures
 
 The following paper-ready figures accompany this summary:
 
 - KNN development trajectory: [knn_evolution_metrics.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_evolution_metrics.png)
 - KNN threshold trade-offs: [knn_threshold_tradeoff.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_threshold_tradeoff.png)
 
-## 2. Data representation and evaluation protocol
+## 3. Data Representation And Evaluation Protocol
 
 The KNN notebook uses `data/knn_dataset.csv`, which contains `3,486` rows and `31` columns. The target prevalence is approximately `5.82%`, so the task is a strongly imbalanced binary classification problem.
 
@@ -63,7 +63,7 @@ The tuning and comparison metrics are:
 
 This protocol fits the research setting well. PR AUC is the correct ranking metric for a low-prevalence target, while balanced accuracy and ROC AUC provide additional discrimination diagnostics.
 
-## 3. Baseline KNN specification
+## 4. Model Specification
 
 The initial KNN pipeline uses a leakage-safe preprocessing stack:
 
@@ -87,9 +87,9 @@ The classifier is `KNeighborsClassifier`, tuned over a compact grid:
 
 This is an appropriate design for a paper baseline because it is small enough to explain clearly, but broad enough to show whether local geometry is meaningful.
 
-## 4. Model evolution
+## 5. Model Development
 
-### 4.1 Stage 1: Original KNN on the full KNN feature space
+### 5.1 Original KNN On The Full Feature Space
 
 The first tuning stage searched the compact KNN grid on the original feature set. The notebook records the current best tested setup as:
 
@@ -101,7 +101,7 @@ The first tuning stage searched the compact KNN grid on the original feature set
 
 This result is modest but informative. It shows that local neighborhood structure is not random; there is signal in the checkpoint-level representation. However, the result is not strong enough to support KNN as the final modeling family.
 
-### 4.2 Stage 2: Removing ID-like features
+### 5.2 Removing ID-Like Features
 
 The next extension explicitly removed:
 
@@ -126,7 +126,7 @@ After removing these variables and rerunning the compact search, the best reduce
 
 The gain in PR AUC was small, but the gain in ROC AUC was more noticeable. This suggests that the original KNN geometry was indeed being polluted by ID-like variables, and removing them made the neighborhood structure slightly more coherent.
 
-### 4.3 Stage 3: Threshold tuning on reduced-feature KNN
+### 5.3 Threshold Tuning On Reduced-Feature KNN
 
 The reduced-feature KNN line then introduced threshold tuning on pooled out-of-fold probabilities instead of fixing the decision threshold at `0.5`.
 
@@ -160,7 +160,7 @@ The trade-off is clear:
   - many false positives
   - roughly half of rows are flagged as positive
 
-### 4.4 Stage 4: PCA before KNN
+### 5.4 PCA Before KNN
 
 The final KNN extension inserted PCA after preprocessing and before distance calculation. This tests whether a compact latent representation improves neighborhood behavior by:
 
@@ -207,29 +207,29 @@ Compared with the reduced-feature no-PCA threshold solution, the PCA model is mo
 
 These stage-wise changes are visualized in [knn_evolution_metrics.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_evolution_metrics.png), while the threshold sensitivity of the reduced and PCA-enhanced variants is shown in [knn_threshold_tradeoff.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/knn_threshold_tradeoff.png).
 
-## 5. Why these changes were made
+## 6. Design Logic And Justification
 
 The KNN pipeline evolved in a scientifically coherent order.
 
-### 5.1 Why remove ID-like features
+### 6.1 Why Remove ID-Like Features
 
 Distance-based models assume that every coordinate in feature space contributes meaningfully to similarity. That assumption is violated by arbitrary identifiers. In KNN, this is more harmful than in many linear or tree models because the entire prediction mechanism depends on a sensible distance geometry.
 
 Removing `player_id` and `jersey_number` therefore improved methodological validity even before considering predictive performance.
 
-### 5.2 Why tune the threshold
+### 6.2 Why Tune The Threshold
 
 The research task is imbalanced. A model can have a useful probability ranking while making poor hard classifications at threshold `0.5`. Threshold tuning was necessary to show what the same reduced-feature KNN can do in a recall-oriented coaching scenario.
 
-### 5.3 Why add PCA
+### 6.3 Why Add PCA
 
 KNN is vulnerable to high-dimensional sparse representations. One-hot encoded context and multiple correlated aggregates make Euclidean or Manhattan neighborhoods noisy. PCA was introduced to determine whether a lower-dimensional latent space could restore local structure. The PR AUC gain suggests that it did.
 
-## 6. How the KNN results answer the research questions
+## 7. Results And Research-Question Interpretation
 
 The contest’s research questions are broader than model leaderboard performance. KNN contributes usefully even if it is not the best final model.
 
-### RQ1: How well can player behavior predict later scoring?
+### 7.1 RQ1: How Well Can Player Behavior Predict Later Scoring?
 
 The KNN family demonstrates that simple local similarity contains signal, but only moderate signal.
 
@@ -240,7 +240,7 @@ The strongest KNN ranking result in the notebook is:
 
 This supports the claim that checkpoint-level behavior and context are predictive, but that a local distance-based learner is not the most efficient extractor of that signal.
 
-### RQ2: Which aspects of behavior determine scoring probability?
+### 7.2 RQ2: Which Aspects Of Behavior Determine Scoring Probability?
 
 KNN does not provide feature coefficients or native importance scores, so it is weak for direct determinant analysis. Its main contribution to RQ2 is indirect:
 
@@ -249,27 +249,27 @@ KNN does not provide feature coefficients or native importance scores, so it is 
 
 Thus, KNN suggests that determinants are multivariate and interaction-heavy, but it does not identify them sharply.
 
-### RQ3: Are sprints and shots alone sufficient?
+### 7.3 RQ3: Are Sprints And Shots Alone Sufficient?
 
 The KNN notebook does not run a dedicated sprint-and-shot-only ablation. However, because the KNN feature space includes passes and context, and because KNN still performs only moderately, the KNN line does not support the idea that simple raw volume similarity in physical and shooting behavior is sufficient on its own.
 
-### RQ4: Does passing data improve predictive performance?
+### 7.4 RQ4: Does Passing Data Improve Predictive Performance?
 
 KNN does not isolate passing data in a formal ablation. Still, the KNN dataset includes pass aggregates, and the moderate performance suggests that pass information may help, but not enough to make a naive local similarity model competitive with stronger nonlinear learners.
 
-### RQ5: Short-term vs cumulative influence
+### 7.5 RQ5: Short-Term Vs Cumulative Influence
 
 The KNN dataset combines both recent (`last15_*`) and cumulative (`cumul_*`) aggregates in the same geometry. Since KNN does not disentangle them, it does not answer RQ5 directly. Its value here is only as a baseline using both scales simultaneously.
 
-### RQ6: Does short-term intensity relative to overall level matter?
+### 7.6 RQ6: Does Short-Term Intensity Relative To Overall Level Matter?
 
 Not directly. The KNN notebook does not construct explicit relative-intensity features. This omission is itself informative: KNN on the simpler aggregate space works, but only modestly, which supports the later move toward richer engineered sequence-aware features and more expressive nonlinear models.
 
-### RQ7: Do external/context factors matter?
+### 7.7 RQ7: Do External/Context Factors Matter?
 
 Because context variables are included in the feature space and one-hot encoded, the KNN model does incorporate them. The fact that the model performs above chance suggests that context helps define useful neighborhoods. However, KNN cannot isolate which contextual factors matter most in an interpretable way.
 
-## 7. Interpretation of the KNN line
+## 8. Discussion
 
 The KNN family should be interpreted as a methodological baseline rather than a final football-analytic explanation engine.
 
@@ -288,7 +288,7 @@ Its main weaknesses are:
 
 The most scientifically useful conclusion is that local similarity is present but not strong enough to stand alone. Better answers to the contest questions require models that can represent structured interactions more efficiently.
 
-## 8. Final paper-ready takeaway
+## 9. Paper-Ready Takeaway
 
 For the paper, the KNN results support the following statement:
 
