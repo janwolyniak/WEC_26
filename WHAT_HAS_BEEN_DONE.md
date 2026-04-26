@@ -375,6 +375,21 @@
 - The notebook structure and objective options were implemented.
 - The search notebook has not been rerun yet after adding the Poisson variants.
 
+# `KNN_SUMMARY.md` and `NN_SUMMARY.md`
+
+## Paper-ready model summaries
+
+- Added `KNN_SUMMARY.md` as a detailed research-paper-style summary of the KNN modeling line.
+- Added `NN_SUMMARY.md` as a detailed research-paper-style summary of the sequence-aware, neural, and FT-transformer modeling line.
+- Both summaries cover:
+  - model purpose and positioning
+  - data representation and evaluation protocol
+  - model evolution step by step
+  - reasons for each major design change
+  - exact reported results available from the executed notebooks
+  - discussion of how the results answer RQ1-RQ7 from `docs/WEC2026_Problem_description.md`
+  - limitations and paper-ready concluding interpretation
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
