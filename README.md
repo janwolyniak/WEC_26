@@ -36,7 +36,7 @@ These are the core contest datasets used by the scripts.
 Run all commands from the repository root:
 
 ```bash
-cd /Users/jan/Documents/competitions/hackatons/WEC_26
+cd /path/to/WEC2026
 ```
 
 ### Step 1: Build normalized data intake artifacts
@@ -117,74 +117,67 @@ Main outputs:
 - `docs/baseline_metrics.md`
 - `docs/baseline_diagnostics.md`
 
-### Step 7: Build engineered feature sets
-
-Run the feature-engineering stages in order:
+### Step 7: Build consolidated engineered feature sets
 
 ```bash
-python3 src/python/feature_engineering_v1.py
-python3 src/python/feature_engineering_v2.py
-python3 src/python/feature_engineering_v3.py
+python3 src/python/feature_engineering_consolidated.py
+```
+
+This generates:
+
+- `artifacts/features/features_final_dev.csv`
+- `artifacts/features/features_final_holdout.csv`
+
+To generate the optimized "Top 20" subset used for the final model:
+
+```bash
+# First run a full SHAP analysis to get importances (optional if already computed)
+# python3 src/python/shap_analysis.py --version final --poisson
+
+# Then extract top 20
+python3 src/python/extract_top_n_features.py --n 20
+```
+
+This generates `artifacts/features/features_final_top20_dev.csv`.
+
+### Step 8: Tune and Interpret the Finalist Models
+
+```bash
+# Tune the Top 20 model with Poisson regression
+python3 src/python/model_tuning.py --version final_top20 --poisson --optimize balanced_accuracy
 ```
 
 Main outputs:
 
-- `artifacts/features/features_v1_dev.csv`
-- `artifacts/features/features_v2_dev.csv`
-- `artifacts/features/features_v3_dev.csv`
-- matching holdout files
-- incremental comparison files in `artifacts/baseline/`
-- `docs/feature_engineering_v1.md`
-- `docs/feature_engineering_v2.md`
-
-`v3` is the feature set currently consumed by the downstream tuning, calibration, and SHAP scripts.
-
-### Step 8: Tune the finalist models
-
-```bash
-python3 src/python/model_tuning.py --optimize pr_auc
-```
-
-Main outputs:
-
-- `artifacts/tuning/lr_trials.csv`
 - `artifacts/tuning/xgb_trials.csv`
-- `artifacts/tuning/best_params.json`
-- `artifacts/tuning/finalist_summary.csv`
+- `artifacts/tuning/best_params_final_top20.json`
+- `artifacts/tuning/pr_curves_final_top20.png`
 - `docs/model_tuning.md`
 
-Optional plot:
+### Step 9: Calibrate the Final Model and Select Threshold
 
 ```bash
-python3 src/python/generate_pr_plots.py
-```
-
-This writes `artifacts/tuning/pr_curves_v2.png`.
-
-### Step 9: Calibrate the best XGBoost model and select the decision threshold
-
-```bash
-python3 src/python/probability_calibration.py
+python3 src/python/probability_calibration.py --version final_top20 --poisson
 ```
 
 Main outputs:
 
-- `artifacts/models/calibrated_xgboost_v3.pkl`
-- `artifacts/models/threshold_metrics.csv`
+- `artifacts/models/calibrated_xgboost_final_top20.pkl`
 - `artifacts/models/calibration_and_thresholds.png`
 - `docs/threshold_policy.md`
 
-### Step 10: Run SHAP interpretation for the calibrated model
+### Step 10: Final SHAP Analysis
 
 ```bash
-python3 src/python/shap_analysis.py
+python3 src/python/shap_analysis.py --version final_top20 --poisson
 ```
 
 Main outputs:
 
-- `reports/figures/shap_summary_xgboost.png`
-- `reports/figures/shap_importance_xgboost.png`
-- `artifacts/models/shap_importance_v3.csv`
+- `reports/figures/shap_summary_xgboost_final_top20.png`
+- `reports/figures/shap_importance_xgboost_final_top20.png`
+- `artifacts/models/shap_importance_final_top20.csv`
+
 
 ### Step 11: Run the RQ3-RQ7 ablation study
 
@@ -229,9 +222,9 @@ After the scripts finish, the quickest way to review the reproduced research is:
 
 ## 6. Notes on Current Script Layout
 
-- `model_tuning.py` is the main tuning entry point. The older `tune_lr.py`, `tune_xgb.py`, and `model_tuning_report.py` scripts are alternative or legacy pieces and are not required if you use the unified tuning script.
-- `generate_pr_plots.py` still labels its plot as `v2`, while the main tuning script currently reads `features_v3_dev.csv`. Treat that plot as auxiliary.
-- Some precomputed artifacts already exist in the repository. If you want a clean reproduction, delete old generated outputs manually before rerunning the pipeline.
+- `model_tuning.py` is the main tuning entry point. It supports `--version` and `--poisson` flags for the final pipeline.
+- `feature_engineering_consolidated.py` replaces the previous `v1-v6` sequence for faster reproduction.
+- The older `tune_lr.py`, `tune_xgb.py`, and `model_tuning_report.py` scripts are legacy pieces and are not required if you use the unified tuning script.
 
 ## 7. Final Deliverables You Should Expect
 
@@ -241,6 +234,7 @@ If reproduction succeeds, you should have:
 - cleaned audit and governance documents in `docs/`
 - baseline and engineered-feature comparisons in `artifacts/baseline/`
 - tuned model summaries in `artifacts/tuning/`
-- a calibrated final XGBoost model in `artifacts/models/`
+- a calibrated final XGBoost model (`calibrated_xgboost_final_top20.pkl`) in `artifacts/models/`
 - SHAP figures in `reports/figures/`
+
 - ablation-study outputs in `artifacts/rq3_rq7_ablation/`
