@@ -1,0 +1,19 @@
+{
+  "XGBoost": {
+    "params": {
+      "n_estimators": 92,
+      "max_depth": 5,
+      "learning_rate": 0.2326056898292424,
+      "min_child_weight": 6,
+      "subsample": 0.461672685732822,
+      "colsample_bytree": 0.9743989933894436,
+      "reg_alpha": 3.887408196570872e-05,
+      "reg_lambda": 1.351687818475157e-07
+    },
+    "mean_balanced_accuracy": 0.6809727577060519,
+    "std_balanced_accuracy": 0.04471895234733114,
+    "mean_roc_auc": 0.7449754684571864,
+    "mean_pr_auc": 0.18686895738665404,
+    "mean_brier_score": 0.05255222246050835
+  }
+}

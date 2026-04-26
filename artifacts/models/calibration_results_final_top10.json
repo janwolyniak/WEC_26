@@ -1,0 +1,11 @@
+{
+  "version": "final_top10",
+  "best_method": "isotonic",
+  "brier_scores": {
+    "uncalibrated": 0.05202297850952013,
+    "sigmoid": 0.05321070164999734,
+    "isotonic": 0.05153319139035207,
+    "beta": 0.05193332979730073,
+    "spline": 0.051660464071964014
+  }
+}

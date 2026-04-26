@@ -111,14 +111,15 @@ def to_float(x):
 def to_category(x):
     return x.astype('category')
 
-def _prep_xgb(numeric_cols: list[str]) -> ColumnTransformer:
+def _prep_xgb(numeric_cols: list[str], cat_cols: list[str] = CATEGORICAL_COLS, bool_cols: list[str] = BOOLEAN_COLS) -> ColumnTransformer:
     bool_tr = FunctionTransformer(to_float)
-    cat_tr_xgb = FunctionTransformer(to_category)
+    from sklearn.preprocessing import OrdinalEncoder
+    cat_tr_xgb = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
     ct = ColumnTransformer([
-        ("cat",  cat_tr_xgb,                       CATEGORICAL_COLS),
-        ("bool", bool_tr,                          BOOLEAN_COLS),
+        ("cat",  cat_tr_xgb,                       cat_cols),
+        ("bool", bool_tr,                          bool_cols),
         ("num",  SimpleImputer(strategy="median"), numeric_cols),
-    ])
+    ], remainder="passthrough")
     ct.set_output(transform='pandas')
     return ct
 
@@ -127,7 +128,7 @@ def _prep_xgb(numeric_cols: list[str]) -> ColumnTransformer:
 # CV evaluation helper (returns per-fold and mean metrics)
 # ---------------------------------------------------------------------------
 def _cv_eval(clf_factory, dev_df: pd.DataFrame,
-             feature_cols: list[str], fold_ids: list[str]) -> dict:
+             feature_cols: list[str], fold_ids: list[str], use_poisson: bool = False) -> dict:
     fold_ba, fold_auc, fold_pr, fold_br = [], [], [], []
     for fold_id in fold_ids:
         tr = dev_df[dev_df["fold"] != fold_id]
@@ -135,9 +136,21 @@ def _cv_eval(clf_factory, dev_df: pd.DataFrame,
         X_tr, y_tr = tr[feature_cols], tr[TARGET]
         X_va, y_va = va[feature_cols], va[TARGET]
         clf = clf_factory(y_tr)
-        clf.fit(X_tr, y_tr)
-        y_pred  = clf.predict(X_va)
-        y_proba = clf.predict_proba(X_va)[:, 1]
+        if use_poisson and hasattr(clf, "named_steps"):
+            prep = clf.named_steps["prep"]
+            model = clf.named_steps["clf"]
+            X_tr_p = prep.fit_transform(X_tr)
+            X_va_p = prep.transform(X_va)
+            exp_tr = dev_df.loc[tr.index, "exposure"].clip(lower=1)
+            exp_va = dev_df.loc[va.index, "exposure"].clip(lower=1)
+            model.fit(X_tr_p, y_tr, base_margin=np.log(exp_tr))
+            lambda_val = model.predict(X_va_p, base_margin=np.log(exp_va))
+            y_proba = 1 - np.exp(-lambda_val)
+            y_pred = (y_proba >= 0.05).astype(int)
+        else:
+            clf.fit(X_tr, y_tr)
+            y_pred  = clf.predict(X_va)
+            y_proba = clf.predict_proba(X_va)[:, 1]
         fold_ba.append(balanced_accuracy_score(y_va, y_pred))
         fold_auc.append(roc_auc_score(y_va, y_proba) if y_va.nunique() > 1 else np.nan)
         fold_pr.append(average_precision_score(y_va, y_proba) if y_va.nunique() > 1 else np.nan)
@@ -155,7 +168,7 @@ def _cv_eval(clf_factory, dev_df: pd.DataFrame,
 # ---------------------------------------------------------------------------
 # Optuna objectives
 # ---------------------------------------------------------------------------
-def make_objective_lr(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for="pr_auc"):
+def make_objective_lr(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for="pr_auc", use_poisson=False):
     def objective(trial: optuna.Trial):
         penalty_solver = trial.suggest_categorical(
             "penalty_solver", ["l2_lbfgs", "l2_saga", "l1_saga"]
@@ -186,7 +199,7 @@ def make_objective_lr(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for
     return objective
 
 
-def make_objective_xgb(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for="pr_auc"):
+def make_objective_xgb(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for="pr_auc", use_poisson=False, cat_cols=CATEGORICAL_COLS, bool_cols=BOOLEAN_COLS):
     def objective(trial: optuna.Trial):
         params = {
             "n_estimators":      trial.suggest_int("n_estimators", 50, 400),
@@ -200,19 +213,28 @@ def make_objective_xgb(dev_df, numeric_cols, feature_cols, fold_ids, optimize_fo
         }
 
         def factory(y_tr):
-            spw = ((len(y_tr) - y_tr.sum()) / y_tr.sum()) if y_tr.sum() > 0 else 1.0
-            return Pipeline([
-                ("prep", _prep_xgb(numeric_cols)),
-                ("clf",  xgb.XGBClassifier(
-                    **params,
-                    scale_pos_weight=spw,
-                    eval_metric="logloss",
-                    enable_categorical=True,
-                    random_state=RANDOM_SEED,
-                )),
-            ])
+            if use_poisson:
+                return Pipeline([
+                    ("prep", _prep_xgb(numeric_cols, cat_cols=cat_cols, bool_cols=bool_cols)),
+                    ("clf",  xgb.XGBRegressor(
+                        **params,
+                        objective='count:poisson',
+                        random_state=RANDOM_SEED,
+                    )),
+                ])
+            else:
+                spw = ((len(y_tr) - y_tr.sum()) / y_tr.sum()) if y_tr.sum() > 0 else 1.0
+                return Pipeline([
+                    ("prep", _prep_xgb(numeric_cols, cat_cols=cat_cols, bool_cols=bool_cols)),
+                    ("clf",  xgb.XGBClassifier(
+                        **params,
+                        scale_pos_weight=spw,
+                        eval_metric="logloss",
+                        random_state=RANDOM_SEED,
+                    )),
+                ])
 
-        result = _cv_eval(factory, dev_df, feature_cols, fold_ids)
+        result = _cv_eval(factory, dev_df, feature_cols, fold_ids, use_poisson=use_poisson)
         for key, val in result.items():
             if key != "fold_balanced_accuracy":
                 trial.set_user_attr(key, val)
@@ -244,14 +266,18 @@ def _extract_trials(study: optuna.Study, model_name: str) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def run(optimize_for: str = "pr_auc", train_lr: bool = True, train_xgb: bool = True) -> None:
-    dev_df    = pd.read_csv(FEATURES_DIR / "features_v3_dev.csv")
+def run(optimize_for: str = "pr_auc", train_lr: bool = False, train_xgb: bool = True, version: str = "v3", use_poisson: bool = False) -> None:
+    dev_df    = pd.read_csv(FEATURES_DIR / f"features_{version}_dev.csv")
     numeric_cols = get_numeric_cols(dev_df)
-    feature_cols = numeric_cols + CATEGORICAL_COLS + BOOLEAN_COLS
+    
+    actual_cat_cols = [c for c in CATEGORICAL_COLS if c in dev_df.columns]
+    actual_bool_cols = [c for c in BOOLEAN_COLS if c in dev_df.columns]
+    
+    feature_cols = numeric_cols + actual_cat_cols + actual_bool_cols
     fold_ids     = sorted(dev_df["fold"].unique())
 
-    print(f"Feature space: {len(numeric_cols)} numeric + {len(CATEGORICAL_COLS)} cat "
-          f"+ {len(BOOLEAN_COLS)} bool = {len(feature_cols)} total")
+    print(f"Feature space: {len(numeric_cols)} numeric + {len(actual_cat_cols)} cat "
+          f"+ {len(actual_bool_cols)} bool = {len(feature_cols)} total")
     print(f"Development rows: {len(dev_df)}, Folds: {fold_ids}")
     
     directions = ["maximize", "maximize"] if optimize_for == "both" else None
@@ -263,7 +289,7 @@ def run(optimize_for: str = "pr_auc", train_lr: bool = True, train_xgb: bool = T
         sampler_lr = optuna.samplers.TPESampler(seed=RANDOM_SEED, multivariate=True)
         study_lr = optuna.create_study(directions=directions, direction=direction, sampler=sampler_lr)
         study_lr.optimize(
-            make_objective_lr(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for),
+            make_objective_lr(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for, use_poisson=use_poisson),
             n_trials=N_TRIALS_LR,
             show_progress_bar=True,
         )
@@ -281,7 +307,7 @@ def run(optimize_for: str = "pr_auc", train_lr: bool = True, train_xgb: bool = T
         sampler_xgb = optuna.samplers.TPESampler(seed=RANDOM_SEED, multivariate=True)
         study_xgb = optuna.create_study(directions=directions, direction=direction, sampler=sampler_xgb)
         study_xgb.optimize(
-            make_objective_xgb(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for),
+            make_objective_xgb(dev_df, numeric_cols, feature_cols, fold_ids, optimize_for, use_poisson=use_poisson, cat_cols=actual_cat_cols, bool_cols=actual_bool_cols),
             n_trials=N_TRIALS_XGB,
             show_progress_bar=True,
         )
@@ -293,7 +319,7 @@ def run(optimize_for: str = "pr_auc", train_lr: bool = True, train_xgb: bool = T
         xgb_trials = None
         best_xgb = None
 
-    best_params_path = TUNING_DIR / "best_params.json"
+    best_params_path = TUNING_DIR / f"best_params_{version}.json"
     if best_params_path.exists():
         with open(best_params_path, "r") as f:
             best_params = json.load(f)
@@ -312,7 +338,7 @@ def run(optimize_for: str = "pr_auc", train_lr: bool = True, train_xgb: bool = T
             **{k: v for k, v in best_xgb.user_attrs.items()},
         }
         
-    (TUNING_DIR / "best_params.json").write_text(
+    best_params_path.write_text(
         json.dumps(best_params, indent=2), encoding="utf-8"
     )
 
@@ -425,5 +451,9 @@ def _write_report(models_to_report, best_params, optimize_for) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--optimize", type=str, default="pr_auc", choices=["pr_auc", "balanced_accuracy", "both"], help="Metric to optimize")
+    parser.add_argument("--version", type=str, default="v3", help="Feature version to use")
+    parser.add_argument("--poisson", action="store_true", help="Use Poisson regression objective")
     args = parser.parse_args()
-    run(optimize_for=args.optimize)
+    
+    # We map global TRAIN_LR / TRAIN_XGB if needed, or pass them in
+    run(optimize_for=args.optimize, train_lr=False, train_xgb=True, version=args.version, use_poisson=args.poisson)

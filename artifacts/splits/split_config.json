@@ -1,9 +1,9 @@
 {
   "random_seed": 17,
-  "holdout_fixture_fraction": 0.1,
+  "holdout_fixture_fraction": 0.2,
   "n_dev_folds": 5,
   "holdout_restarts": 20,
-  "fold_restarts": 20,
+  "fold_restarts": 50,
   "holdout_row_share_tolerance": 0.03,
   "holdout_target_rate_tolerance": 0.015,
   "holdout_home_away_share_tolerance": 0.03,
