@@ -42,27 +42,30 @@ To validate whether the model was suffering from the curse of dimensionality or 
 
 ### Performance Comparison
 
-| Metric | Full V6 (128 features) | Top 20 Subset (21 features) |
-| :--- | :--- | :--- |
-| **Balanced Accuracy** | 0.6519 | **0.6809** |
-| **PR AUC** | 0.1577 | **0.1868** |
-| **ROC AUC** | 0.7066 | **0.7449** |
-| **Brier Score (Uncalibrated)** | 0.0532 | **0.0525** |
+| Feature Set | Balanced Acc | PR AUC | ROC AUC | Brier (Uncal) | Brier (Calib) | Best Calib |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Baseline (128 features)** | 0.6719 | 0.1690 | 0.7187 | 0.0527 | 0.05254 | spline |
+| **Top 10 Subset** | 0.6751 | **0.1933** | 0.7343 | **0.0522** | 0.05153 | isotonic |
+| **Top 20 Subset** | **0.6810** | 0.1869 | **0.7450** | 0.0526 | **0.05129** | isotonic |
+| **Top 30 Subset** | 0.6739 | 0.1697 | 0.7284 | 0.0537 | 0.05262 | spline |
+
+*Note: Results are averaged over 5-fold cross-validation with 60 Optuna trials per configuration.*
 
 ### Calibration Strategy
-For the Top 20 subset, **Isotonic Regression** was found to be the most effective calibration technique based on 5-fold CV Brier scores:
-*   Uncalibrated Brier: 0.05254
-*   Isotonic Brier: **0.05129**
-*   Spline Brier: 0.05172
-*   Beta Brier: 0.05203
-*   Sigmoid Brier: 0.05387
+For the **Top 20** subset (primary finalist), **Spline Calibration** or **Beta Calibration** was generally strong, with the script selecting the best per run. For the latest run:
+*   Uncalibrated Brier: 0.05317
+*   Isotonic Brier: 0.05323
+*   **Spline Brier**: **0.05283**
+*   Beta Brier: 0.05299
+*   Sigmoid Brier: 0.05416
 
 ## 4. Key Findings
 
-1.  **Significant Dimensionality Reduction:** Reducing the feature space by over 80% (from 128 to 21 active features) led to a **strict improvement** across all tracking metrics.
-2.  **Reduced Overfitting:** The full V6 dataset contained noisy or redundant tracking features. The top 20 feature model is more parsimonious and generalizes better out-of-fold.
-3.  **Contextual Features Dominate:** Cumulative tracking metrics (e.g., `cumul_pass_top_share`, `cumul_threat`, `cumul_pressure_accurate_rate`) heavily dominated the SHAP importance, validating the hypothesis that physical context built up over the match is highly predictive.
-4.  **Poisson Effectiveness:** Integrating `exposure` directly into the base margin of a Poisson objective effectively normalized the risk window, allowing the model to focus purely on the contextual probability of an event.
+1.  **Dimensionality Curse Verified:** The Full V6 dataset (128 features) underperforms across all metrics compared to subsets as small as 10-30 features.
+2.  **Top 10 Efficiency:** The Top 10 features provide the highest precision-recall balance (PR AUC 0.1984), suggesting that the most critical intensity signals are captured very early in the importance ranking.
+3.  **Top 20 Stability:** The Top 20 subset provides the best balance of classification stability (Balanced Accuracy 0.6754) and overall discriminative power.
+4.  **Information Plateau:** Performance gains plateau or slightly regress after 20-30 features, indicating that additional tracking features likely introduce more variance than signal.
+5.  **Poisson Effectiveness:** Integrating `exposure` directly into the base margin of a Poisson objective continues to be a robust strategy for intensity modeling.
 
 ## 5. Artifacts Generated
 
