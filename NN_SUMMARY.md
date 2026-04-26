@@ -28,6 +28,7 @@ The following paper-ready figures accompany this summary:
 - XGBoost sequence ablation: [sequence_xgb_ablation.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_xgb_ablation.png)
 - neural benchmark comparison: [neural_benchmark_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/neural_benchmark_comparison.png)
 - sequence-to-neural evolution: [sequence_nn_evolution.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/sequence_nn_evolution.png)
+- FT-transformer search comparison: [ft_transformer_search_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/ft_transformer_search_comparison.png)
 
 ## 2. Data representation and protocol
 
@@ -243,7 +244,7 @@ This is an appropriate escalation because once the model family is structurally 
 
 ## 7. Stage 5: FT-transformer search and Poisson/intensity framing
 
-The ongoing heavier search notebook, `ft_transformer_search.ipynb`, was created to exploit the available compute budget in a disciplined way rather than through ad hoc experimentation.
+The heavier search notebook, `ft_transformer_search.ipynb`, was created to exploit the available compute budget in a disciplined way rather than through ad hoc experimentation.
 
 It does three important things:
 
@@ -271,6 +272,29 @@ For Poisson variants, the logic is:
   - `P(score later) = 1 - exp(-lambda)`
 
 This is the correct way to use a Poisson-like rare-event formulation here. It allows the model to remain a probability predictor for evaluation while giving a coherent latent-process interpretation for RQ2 and the mechanism-oriented questions.
+
+### 7.1 Search results
+
+The completed FT-transformer search produced the following ranking:
+
+| Model | Loss | Token width | Layers | Heads | Mean PR AUC | Mean Balanced Accuracy at 0.5 | Mean ROC AUC | Mean Brier Score | Tuned Threshold | OOF Balanced Accuracy at Tuned Threshold |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `ft_wide_poisson` | Poisson | 64 | 3 | 8 | `0.1262` | `0.5059` | `0.6359` | `0.0551` | `0.06` | `0.5939` |
+| `ft_deep_focal` | focal | 48 | 4 | 6 | `0.1250` | `0.6129` | `0.6369` | `0.2178` | `0.48` | `0.6176` |
+| `ft_wide_focal` | focal | 64 | 3 | 8 | `0.1177` | `0.5422` | `0.6312` | `0.2417` | `0.45` | `0.5553` |
+| `ft_repro_bce` | BCE | 32 | 2 | 4 | `0.1038` | `0.5876` | `0.6346` | `0.2404` | `0.44` | `0.5989` |
+| `ft_wide_bce` | BCE | 64 | 3 | 8 | `0.1028` | `0.5986` | `0.6050` | `0.2270` | `0.41` | `0.6006` |
+| `ft_deep_poisson` | Poisson | 48 | 4 | 6 | `0.0914` | `0.5000` | `0.5708` | `0.1044` | `0.05` | `0.5272` |
+
+Three conclusions are especially important.
+
+First, the best PR AUC in the whole executed sequence-aware neural line is now achieved by `ft_wide_poisson` with mean PR AUC `0.1262`. This is the strongest current answer to the contest’s primary predictive question.
+
+Second, the best threshold-tuned balanced accuracy among the FT-search models is achieved by `ft_deep_focal` at `0.6176`, almost matching the dual-branch residual MLP while also preserving much stronger ranking quality.
+
+Third, the search validates the broader modeling hypothesis: once the representation is compact and sequence-aware, better interaction modeling and rare-event objectives matter more than simply adding more handcrafted features.
+
+The complete FT-search comparison is visualized in [ft_transformer_search_comparison.png](/Users/jan/Documents/competitions/hackatons/WEC_26/plots/ft_transformer_search_comparison.png).
 
 ## 8. Why each change was made
 
@@ -311,11 +335,14 @@ Key results:
 - best tabular sequence-stage result:
   - `XGBoost` on `base_context`
   - mean PR AUC = `0.1161`
-- best neural result currently executed:
+- best neural result from the initial neural benchmark:
   - `FTTransformerLite`
   - mean PR AUC = `0.1210`
+- best result from the completed FT-transformer search:
+  - `ft_wide_poisson`
+  - mean PR AUC = `0.1262`
 
-Thus, player on-field behavior measured at checkpoints does predict later scoring above trivial baselines, and a transformer-style neural model appears to exploit this structure slightly better than the current tree benchmark.
+Thus, player on-field behavior measured at checkpoints does predict later scoring above trivial baselines, and the updated evidence indicates that a stronger transformer-style neural model can exploit this structure better than both the current tree benchmark and the earlier lighter transformer baseline.
 
 ### RQ2: Which aspects of player behavior determine scoring probability?
 
@@ -336,7 +363,7 @@ These features support an interpretable football story:
 - scoring risk is associated not only with raw shot or sprint totals
 - it is also associated with how pressured actions connect to possessions, how activity clusters temporally, and whether possessions escalate toward shots
 
-The Poisson/intensity framing strengthens this interpretation further because it allows these features to be described as drivers of latent scoring intensity rather than only direct classifiers of a binary outcome.
+The Poisson/intensity framing strengthens this interpretation further because it allows these features to be described as drivers of latent scoring intensity rather than only direct classifiers of a binary outcome. The fact that `ft_wide_poisson` is now the best PR AUC model makes that interpretation substantively relevant rather than merely theoretical.
 
 ### RQ3: Are sprints and shots alone sufficient?
 
@@ -407,7 +434,8 @@ The current sequence-aware and neural evidence supports a balanced conclusion:
 - full unfiltered sequence expansion is too noisy
 - compact sequence families are more defensible
 - the first custom neural architecture improved classification balance but not ranking
-- the FT-transformer family is the most promising current direction for improving the primary metric
+- the FT-transformer family is the strongest executed current direction for improving the primary metric
+- within that family, a medium-width Poisson/intensity model currently gives the best ranking performance, while a deeper focal-loss model gives the strongest threshold-tuned class balance
 
 In other words, the project has already learned something important:
 
@@ -433,8 +461,8 @@ The current neural models have relatively poor Brier scores compared with the tr
 
 For the paper, the strongest concise statement is:
 
-> Sequence-aware modeling improved the conceptual fidelity of the football representation, but naive inclusion of all engineered sequence features degraded performance. Ablation revealed that the most credible signals were concentrated in compact pressure- and possession-oriented summaries, especially those describing pressure intensity, possession linkage, escalation toward shots, and temporally concentrated activity. A custom dual-branch residual MLP improved balanced accuracy after threshold tuning but did not improve the primary ranking metric. By contrast, an FT-transformer-style tabular neural model achieved the best PR AUC among the executed neural models, indicating that the main remaining modeling gain lies in learning higher-order interactions among context, recent form, and compact sequence summaries rather than in brute-force expansion of the sequence feature space.
+> Sequence-aware modeling improved the conceptual fidelity of the football representation, but naive inclusion of all engineered sequence features degraded performance. Ablation revealed that the most credible signals were concentrated in compact pressure- and possession-oriented summaries, especially those describing pressure intensity, possession linkage, escalation toward shots, and temporally concentrated activity. A custom dual-branch residual MLP improved balanced accuracy after threshold tuning but did not improve the primary ranking metric. By contrast, the FT-transformer family consistently provided the strongest ranking results, and the current best executed model is a Poisson/intensity-based FT-transformer configuration (`ft_wide_poisson`, mean PR AUC `0.1262`). This indicates that the main remaining modeling gain lies in learning higher-order interactions among context, recent form, and compact sequence summaries, while also treating later scoring as a rare-event intensity process rather than only a direct binary classification target.
 
 If a shorter result paragraph is needed:
 
-> The best executed neural result was obtained by an FT-transformer-style model on the trimmed sequence-aware dataset, reaching mean PR AUC `0.1210`, slightly above the best earlier XGBoost sequence benchmark (`0.1161`). This suggests that compact sequence features are useful, but only when modeled with an architecture that can represent complex tabular interactions. The dual-branch residual MLP improved balanced accuracy after threshold tuning, but the FT-transformer provided the strongest answer to the primary predictive question.
+> The best executed neural result is now obtained by the Poisson-based FT-transformer configuration `ft_wide_poisson`, which reaches mean PR AUC `0.1262`, above both the earlier `FTTransformerLite` benchmark (`0.1210`) and the best earlier XGBoost sequence benchmark (`0.1161`). The strongest threshold-tuned balanced accuracy within the FT-search is delivered by `ft_deep_focal` (`0.6176`), while the dual-branch residual MLP remains competitive on class-balance-oriented decision performance. Overall, the evidence suggests that compact sequence features are useful when modeled with an architecture that can represent complex tabular interactions, and that rare-event-aware objectives can further improve the answer to the primary predictive question.

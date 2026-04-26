@@ -402,6 +402,20 @@
   - `plots/sequence_nn_evolution.png`
 - Updated `KNN_SUMMARY.md` and `NN_SUMMARY.md` to reference these figures directly.
 
+## FT-transformer search refresh
+
+- Updated `NN_SUMMARY.md` to reflect the completed results from `artifacts/ft_transformer_search/`.
+- Replaced the earlier “ongoing FT search” framing with a results-based discussion of the completed transformer sweep.
+- Recorded the new current best neural ranking result:
+  - `ft_wide_poisson`
+  - mean PR AUC `0.126164`
+- Recorded the strongest threshold-tuned FT-search balanced-accuracy result:
+  - `ft_deep_focal`
+  - OOF balanced accuracy `0.617613`
+- Refreshed the neural figure package so it matches the newest FT-search outputs.
+- Added a new FT-search comparison figure:
+  - `plots/ft_transformer_search_comparison.png`
+
 # `notebooks/knn_pipeline.ipynb`
 
 ## KNN modeling baseline and extensions
