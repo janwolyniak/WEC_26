@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.isotonic import IsotonicRegression
-from sklearn.model_selection import KFold, PredefinedSplit
+from sklearn.model_selection import GroupKFold, PredefinedSplit
 from sklearn.metrics import brier_score_loss, balanced_accuracy_score, precision_recall_curve, f1_score, confusion_matrix
 import xgboost as xgb
 import matplotlib.pyplot as plt
@@ -234,7 +234,7 @@ def _write_policy_note(brier_uncalib, brier_sigmoid, brier_isotonic, best_method
         f"| Isotonic | {brier_isotonic:.5f} |",
         "",
         f"**Decision:** Selected **{best_method_name.title()}** calibration because it achieved the lowest Brier score.",
-        "The final model artifact (`artifacts/models/calibrated_xgboost_v2.pkl`) uses `CalibratedClassifierCV` with this method, respecting the 5-fold grouped cross-validation scheme to prevent leakage.",
+        "The final model artifact (`artifacts/models/calibrated_xgboost_v3.pkl`) uses `CalibratedClassifierCV` with this method, respecting the 5-fold grouped cross-validation scheme to prevent leakage.",
         "",
         "## 2. Operating Threshold Selection",
         "",
@@ -265,5 +265,4 @@ def _write_policy_note(brier_uncalib, brier_sigmoid, brier_isotonic, best_method
     (DOCS_DIR / "threshold_policy.md").write_text("\n".join(lines), encoding="utf-8")
 
 if __name__ == "__main__":
-    run()
     run()
