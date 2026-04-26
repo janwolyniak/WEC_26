@@ -1,0 +1,30 @@
+{
+  "XGBoost": {
+    "params": {
+      "n_estimators": 392,
+      "max_depth": 3,
+      "learning_rate": 0.07261425999773327,
+      "min_child_weight": 9,
+      "subsample": 0.5959920815827833,
+      "colsample_bytree": 0.8988380737518178,
+      "reg_alpha": 2.3310863265356e-08,
+      "reg_lambda": 5.0458064612553755e-08
+    },
+    "mean_balanced_accuracy": 0.6519463049604161,
+    "std_balanced_accuracy": 0.05137189972518944,
+    "mean_roc_auc": 0.7066108884089762,
+    "mean_pr_auc": 0.15772350748052896,
+    "mean_brier_score": 0.05324191525578499
+  },
+  "LogisticRegression": {
+    "params": {
+      "penalty_solver": "l1_saga",
+      "C": 0.007179371814177521
+    },
+    "mean_balanced_accuracy": 0.6479286510363644,
+    "std_balanced_accuracy": 0.04503651681719701,
+    "mean_roc_auc": 0.694389404573234,
+    "mean_pr_auc": 0.1619029999885234,
+    "mean_brier_score": 0.21633220052295857
+  }
+}
