@@ -1,6 +1,6 @@
 # WEC 2026 Goal-Scoring Research Reproduction Guide
 
-This repository contains a reproducible research pipeline for the WEC 2026 case study of team 4 sigma: predicting whether a player will score later in the match (`scored_after`) from checkpoint-level football data and supplementary event tables.
+This repository contains a reproducible research pipeline for the WEC 2026 case study of the winning team - 4 sigma: predicting whether a player will score later in the match (`scored_after`) from checkpoint-level football data and supplementary event tables.
 
 The codebase mixes exploratory notebooks with script-based research artifacts. If you want to reproduce the research end to end, use the Python scripts in the order below.
 
